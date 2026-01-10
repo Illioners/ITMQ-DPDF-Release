@@ -13,6 +13,31 @@ from concurrent.futures import ThreadPoolExecutor
 import sys
 import updater
 
+# --- GLOBAL SETTINGS & PERSISTENCE ---
+SETTINGS_FILE = "user_settings.json"
+DEFAULT_SETTINGS = {
+    "theme": "light",
+    "animations": True
+}
+
+def load_settings():
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                return {**DEFAULT_SETTINGS, **json.load(f)}
+        except: pass
+    return DEFAULT_SETTINGS.copy()
+
+def save_settings(settings):
+    try:
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(settings, f, indent=4)
+    except: pass
+
+UI_SETTINGS = load_settings()
+CURRENT_THEME = UI_SETTINGS["theme"]
+ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
+
 # --- CONFIGURATION & STYLING ---
 THEMES = {
     "light": {
@@ -43,7 +68,6 @@ THEMES = {
     }
 }
 
-CURRENT_THEME = "light"
 COLORS = THEMES[CURRENT_THEME]
 # Update Primary Blue to Terracotta for Light mode
 THEMES["light"]["BLUE"] = "#E67E22"
@@ -206,7 +230,8 @@ class RoundedButton(tk.Canvas):
         self.state = state
         self.draw()
 
-    def refresh_theme(self):
+    def refresh_theme(self, color=None):
+        if color: self.color = color
         self.config(bg=self.master["bg"])
         self.draw()
 
@@ -271,6 +296,11 @@ class HighResCanvas(tk.Frame):
     def _on_mousewheel(self, event):
         self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
+    def refresh_theme(self):
+        self.config(bg=COLORS["BG"])
+        self.canvas.config(bg=COLORS["BG"])
+        self.render_image()
+
 class PageTile(tk.Frame):
     def __init__(self, parent, page_num, engine, on_click, on_zoom, on_rotate):
         super().__init__(parent, bg=COLORS["SURFACE"], bd=0, highlightthickness=2, highlightbackground=COLORS["BORDER"])
@@ -307,6 +337,11 @@ class PageTile(tk.Frame):
             w.bind("<ButtonRelease-3>", self._handle_right_release)
             w.bind("<Enter>", self._on_enter)
             w.bind("<Leave>", self._on_leave)
+
+        if ANIMATIONS_ENABLED:
+            # Set initial "invisible" state for animation
+            self.lbl_img.config(fg=COLORS["BG"])
+            self.bottom_bar.pack_forget()
 
     def _handle_right_press(self, e):
         self._right_click_time = time.time()
@@ -384,6 +419,71 @@ class PageTile(tk.Frame):
         self.btn_rot.config(bg=bg_bottom, fg="white" if selected else COLORS["BLUE"])
 
 # --- WINDOWS ---
+class SettingsWindow(tk.Toplevel):
+    def __init__(self, parent, on_update):
+        super().__init__(parent)
+        self.title("Ajustes")
+        self.geometry("350x450")
+        self.resizable(False, False)
+        self.configure(bg=COLORS["BG"])
+        self.on_update = on_update
+        self.grab_set()
+
+        # Center on parent
+        self.transient(parent)
+        
+        container = tk.Frame(self, bg=COLORS["BG"], padx=30, pady=30)
+        container.pack(fill="both", expand=True)
+
+        tk.Label(container, text="Ajustes", font=FONTS["TITLE"], bg=COLORS["BG"], fg=COLORS["TEXT"]).pack(anchor="w", pady=(0, 20))
+
+        # Theme Section
+        tk.Label(container, text="Apariencia", font=FONTS["BOLD"], bg=COLORS["BG"], fg=COLORS["TEXT"]).pack(anchor="w", pady=(10, 5))
+        
+        self.theme_var = tk.StringVar(value=CURRENT_THEME)
+        tk.Radiobutton(container, text="Modo Claro", variable=self.theme_var, value="light", bg=COLORS["BG"], fg=COLORS["TEXT"], selectcolor=COLORS["SURFACE"], command=self.save).pack(anchor="w", padx=10)
+        tk.Radiobutton(container, text="Modo Oscuro", variable=self.theme_var, value="dark", bg=COLORS["BG"], fg=COLORS["TEXT"], selectcolor=COLORS["SURFACE"], command=self.save).pack(anchor="w", padx=10, pady=(0, 20))
+
+        # Animations Section
+        tk.Label(container, text="Interfaz", font=FONTS["BOLD"], bg=COLORS["BG"], fg=COLORS["TEXT"]).pack(anchor="w", pady=(10, 5))
+        
+        self.anim_var = tk.BooleanVar(value=ANIMATIONS_ENABLED)
+        tk.Checkbutton(container, text="Activar Animaciones", variable=self.anim_var, onvalue=True, offvalue=False, bg=COLORS["BG"], fg=COLORS["TEXT"], selectcolor=COLORS["SURFACE"], command=self.save).pack(anchor="w", padx=10)
+        tk.Label(container, text="Efectos de aparición y transiciones suaves", font=("Inter", 8), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack(anchor="w", padx=30)
+
+        # Footer
+        footer = tk.Frame(container, bg=COLORS["BG"])
+        footer.pack(side="bottom", fill="x", pady=20)
+        
+        tk.Label(footer, text=f"Versión {updater.APP_VERSION}", font=("Inter", 8), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack()
+        RoundedButton(footer, "CERRAR", command=self.destroy, width=200).pack(pady=10)
+
+    def save(self):
+        global CURRENT_THEME, ANIMATIONS_ENABLED, COLORS, UI_SETTINGS
+        CURRENT_THEME = self.theme_var.get()
+        ANIMATIONS_ENABLED = self.anim_var.get()
+        COLORS = THEMES[CURRENT_THEME]
+        
+        UI_SETTINGS["theme"] = CURRENT_THEME
+        UI_SETTINGS["animations"] = ANIMATIONS_ENABLED
+        save_settings(UI_SETTINGS)
+        
+        self.configure(bg=COLORS["BG"])
+        for child in self.winfo_children():
+            if isinstance(child, tk.Frame):
+                child.configure(bg=COLORS["BG"])
+                for g in child.winfo_children():
+                    if isinstance(g, (tk.Label, tk.Radiobutton, tk.Checkbutton)):
+                        if g.master == child or (isinstance(g.master, tk.Frame) and g.master.master == child):
+                             g.configure(bg=COLORS["BG"], fg=COLORS["TEXT"], selectcolor=COLORS["SURFACE"] if not isinstance(g, tk.Label) else None)
+                    if isinstance(g, tk.Frame):
+                        g.configure(bg=COLORS["BG"])
+                        for gg in g.winfo_children():
+                            if isinstance(gg, tk.Label):
+                                gg.configure(bg=COLORS["BG"], fg=COLORS["TEXT"])
+        
+        self.on_update()
+
 class ManualInputWindow(tk.Toplevel):
     def __init__(self, parent, page_obj=None, page_num=None, engine=None, suggested_val=None):
         super().__init__(parent)
@@ -425,6 +525,21 @@ class ManualInputWindow(tk.Toplevel):
         self.bind("<Button-3>", lambda e: self.destroy())
         self.bind("<Escape>", lambda e: self.destroy())
 
+    def refresh_theme(self):
+        self.configure(bg=COLORS["BG"])
+        for child in self.winfo_children():
+            if isinstance(child, tk.Frame):
+                is_right = child.pack_info().get("side") == "right"
+                child.configure(bg=COLORS["SURFACE"] if is_right else COLORS["BG"])
+                for grand in child.winfo_children():
+                    if isinstance(grand, tk.Label):
+                        grand.configure(bg=grand.master["bg"], fg=COLORS["TEXT"] if "Identificación" in grand["text"] else COLORS["TEXT_SECONDARY"])
+                    elif isinstance(grand, tk.Entry):
+                        grand.configure(bg=COLORS["ACCENT"], fg=COLORS["TEXT"], highlightbackground=COLORS["BORDER"], highlightcolor=COLORS["BLUE"])
+                    elif isinstance(grand, RoundedButton):
+                        grand.refresh_theme()
+                    elif isinstance(grand, HighResCanvas):
+                        grand.refresh_theme()
 
     def rotate_pdf(self):
         if self.engine and self.page_num is not None:
@@ -619,9 +734,9 @@ class EditorWindow(tk.Toplevel):
         self.lbl_step = tk.Label(self.header, text="Cargando...", font=FONTS["TITLE"], bg=COLORS["SURFACE"], fg=COLORS["TEXT"])
         self.lbl_step.pack(side="left", pady=15)
 
-        # Theme Toggle Button
-        self.btn_theme = tk.Button(self.header, text="🌓", font=("Segoe UI", 16), command=self.toggle_theme, bg=COLORS["SURFACE"], fg=COLORS["TEXT"], bd=0, cursor="hand2")
-        self.btn_theme.pack(side="right", padx=10)
+        # Settings Button
+        self.btn_settings = tk.Button(self.header, text="⚙️", font=("Segoe UI", 16), command=self.open_settings, bg=COLORS["SURFACE"], fg=COLORS["TEXT"], bd=0, cursor="hand2")
+        self.btn_settings.pack(side="right", padx=10)
 
         # Main Layout
         self.main_container = tk.Frame(self, bg=COLORS["BG"])
@@ -780,17 +895,30 @@ class EditorWindow(tk.Toplevel):
         for child in widget.winfo_children():
             self._bind_scroll_recursive(child)
 
+    def open_settings(self):
+        SettingsWindow(self, self.refresh_ui_theme)
+
     def toggle_theme(self):
+        # Kept for backward compatibility/keybinds but routes to settings
         global COLORS, CURRENT_THEME
         CURRENT_THEME = "dark" if CURRENT_THEME == "light" else "light"
         COLORS = THEMES[CURRENT_THEME]
+        UI_SETTINGS["theme"] = CURRENT_THEME
+        save_settings(UI_SETTINGS)
         self.refresh_ui_theme()
 
     def refresh_ui_theme(self):
+        # Update ttk styles for scrollbars and progress bars
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure("TProgressbar", thickness=8, troughcolor=COLORS["BORDER"], background=COLORS["BLUE"], borderwidth=0)
+        style.configure("Vertical.TScrollbar", troughcolor=COLORS["BG"], background=COLORS["BORDER"], borderwidth=0, arrowcolor=COLORS["TEXT"])
+        style.configure("Horizontal.TScrollbar", troughcolor=COLORS["BG"], background=COLORS["BORDER"], borderwidth=0, arrowcolor=COLORS["TEXT"])
+
         self.configure(bg=COLORS["BG"])
         self.header.config(bg=COLORS["SURFACE"])
         self.lbl_step.config(bg=COLORS["SURFACE"], fg=COLORS["TEXT"])
-        self.btn_theme.config(bg=COLORS["SURFACE"], fg=COLORS["TEXT"])
+        self.btn_settings.config(bg=COLORS["SURFACE"], fg=COLORS["TEXT"])
         self.main_container.config(bg=COLORS["BG"])
         self.sidebar.config(bg=COLORS["SURFACE"])
         self.sb_canvas.config(bg=COLORS["SURFACE"])
@@ -800,9 +928,16 @@ class EditorWindow(tk.Toplevel):
         self.inner.config(bg=COLORS["BG"])
         self.footer.config(bg=COLORS["SURFACE"])
         
-        self.btn_back.refresh_theme()
-        self.btn_skip.refresh_theme()
-        self.btn_next.refresh_theme()
+        # Navigation Buttons Fix (names matched with setup_ui)
+        self.btn_prev_seg.refresh_theme(COLORS["ACCENT"])
+        self.btn_prev.refresh_theme(COLORS["ACCENT"])
+        self.btn_finish.refresh_theme(COLORS["RED"])
+        self.btn_next.refresh_theme(COLORS["BLUE"])
+        self.btn_next_seg.refresh_theme(COLORS["BLUE_LIGHT"])
+        
+        # Slider Refresh
+        if hasattr(self, "zoom_slider"):
+            self.zoom_slider.config(bg=COLORS["SURFACE"], activebackground=COLORS["ACCENT"], troughcolor=COLORS["BORDER"], fg=COLORS["TEXT"])
         
         for t in self.tiles: t.refresh_theme()
         self.update_sidebar()
@@ -812,10 +947,12 @@ class EditorWindow(tk.Toplevel):
             try:
                 total = self.engine.doc.page_count
                 for i in range(total):
-                    self.after(0, self._add_tile, i)
+                    delay = (i * 30) if ANIMATIONS_ENABLED else 0
+                    self.after(delay, self._add_tile, i)
                 
-                self.after(100, self.update_step_ui)
-                self.after(500, self.update_lazy_loading)
+                final_delay = (total * 30 + 100) if ANIMATIONS_ENABLED else 100
+                self.after(final_delay, self.update_step_ui)
+                self.after(final_delay + 500, self.update_lazy_loading)
             except Exception as e:
                 print(f"Load Error: {e}")
                 self.after(0, lambda: messagebox.showerror("Error", f"Fallo al cargar: {e}"))
@@ -825,8 +962,11 @@ class EditorWindow(tk.Toplevel):
     def _add_tile(self, i):
         tile = PageTile(self.inner, i, self.engine, self._handle_selection, self.show_zoom, self.rotate_tile)
         self.tiles.append(tile)
-        # Ensure scroll works over tiles
         self._bind_scroll_recursive(tile)
+        if ANIMATIONS_ENABLED:
+             # Staggered reveal effect
+             self.after(100, lambda: tile.lbl_img.config(fg=COLORS["BORDER"]))
+             self.after(200, lambda: tile.bottom_bar.pack(fill="x", side="bottom"))
 
     def rotate_tile(self, tile):
         self.engine.rotate_page(tile.page_num)
@@ -1337,8 +1477,8 @@ class MainApp:
                                      bd=0, cursor="hand2", pady=5)
         self.btn_update.pack(pady=5)
         
-        self.btn_theme = tk.Button(root, text="🌓", command=self.toggle_theme, bd=0, bg=COLORS["BG"], fg=COLORS["TEXT"], font=("Segoe UI", 14), cursor="hand2")
-        self.btn_theme.place(x=20, y=20)
+        self.btn_settings = tk.Button(root, text="⚙️", command=self.open_settings, bd=0, bg=COLORS["BG"], fg=COLORS["TEXT"], font=("Segoe UI", 14), cursor="hand2")
+        self.btn_settings.place(x=20, y=20)
 
         self.lbl_footer = tk.Label(root, text="Tomás Posada Castro - 2026 | v" + updater.APP_VERSION, font=("Segoe UI", 8), fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
         self.lbl_footer.place(relx=0.5, rely=0.95, anchor="center")
@@ -1346,18 +1486,29 @@ class MainApp:
         # Auto-check for updates on startup (silent)
         self.root.after(2000, self.auto_check_updates)
 
+    def open_settings(self):
+        SettingsWindow(self.root, self.toggle_theme)
+
     def toggle_theme(self):
         global COLORS, CURRENT_THEME
-        CURRENT_THEME = "dark" if CURRENT_THEME == "light" else "light"
+        # Theme may have changed in settings
         COLORS = THEMES[CURRENT_THEME]
+        
+        # Update ttk styles
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure("TProgressbar", thickness=8, troughcolor=COLORS["BORDER"], background=COLORS["BLUE"], borderwidth=0)
+        style.configure("Vertical.TScrollbar", troughcolor=COLORS["BG"], background=COLORS["BORDER"], borderwidth=0, arrowcolor=COLORS["TEXT"])
+        style.configure("Horizontal.TScrollbar", troughcolor=COLORS["BG"], background=COLORS["BORDER"], borderwidth=0, arrowcolor=COLORS["TEXT"])
+
         self.root.configure(bg=COLORS["BG"])
         self.container.config(bg=COLORS["BG"])
         self.lbl_title.config(bg=COLORS["BG"], fg=COLORS["TEXT"])
         self.lbl_sub.config(bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"])
         self.area.config(bg=COLORS["SURFACE"], highlightbackground=COLORS["BORDER"])
         self.lbl_icon.config(bg=COLORS["SURFACE"], fg=COLORS["BLUE"])
-        self.btn_load.refresh_theme()
-        self.btn_theme.config(bg=COLORS["BG"], fg=COLORS["TEXT"])
+        self.btn_load.refresh_theme(COLORS["BLUE"])
+        self.btn_settings.config(bg=COLORS["BG"], fg=COLORS["TEXT"])
         self.lbl_footer.config(bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"])
         self.btn_update.config(bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"])
 
