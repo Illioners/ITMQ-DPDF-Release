@@ -9,6 +9,11 @@ import hashlib
 import sys
 from datetime import datetime
 
+# Set encoding for stdout to handle potential issues
+if sys.stdout.encoding != 'utf-8':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
 def load_config():
     """Load build configuration"""
     with open('build_config.json', 'r', encoding='utf-8') as f:
@@ -31,7 +36,7 @@ def update_version_file(config):
     with open('version.json', 'w', encoding='utf-8') as f:
         json.dump(version_data, f, indent=2, ensure_ascii=False)
     
-    print(f"✓ version.json actualizado para v{version}")
+    print(f"[INFO] version.json actualizado para v{version}")
     return version_data
 
 def calculate_sha256(file_path):
@@ -44,7 +49,7 @@ def calculate_sha256(file_path):
 
 def build_executable(config):
     """Build the executable using PyInstaller"""
-    print("\n🔨 Compilando aplicación...")
+    print("\n[BUILD] Compilando aplicación...")
     
     # Run PyInstaller
     result = subprocess.run(
@@ -54,22 +59,22 @@ def build_executable(config):
     )
     
     if result.returncode != 0:
-        print("❌ Error durante la compilación:")
+        print("[ERROR] Error durante la compilación:")
         print(result.stderr)
         return None
     
     exe_path = os.path.join('dist', 'ClasificadorPDF.exe')
     
     if not os.path.exists(exe_path):
-        print("❌ El ejecutable no fue generado")
+        print("[ERROR] El ejecutable no fue generado")
         return None
     
-    print(f"✓ Ejecutable compilado: {exe_path}")
+    print(f"[SUCCESS] Ejecutable compilado: {exe_path}")
     return exe_path
 
 def update_sha256(exe_path, version_data):
     """Calculate and update SHA256 in version.json"""
-    print("\n🔐 Calculando SHA256...")
+    print("\n[HASH] Calculando SHA256...")
     
     sha256 = calculate_sha256(exe_path)
     version_data['sha256'] = sha256
@@ -77,7 +82,7 @@ def update_sha256(exe_path, version_data):
     with open('version.json', 'w', encoding='utf-8') as f:
         json.dump(version_data, f, indent=2, ensure_ascii=False)
     
-    print(f"✓ SHA256: {sha256}")
+    print(f"[INFO] SHA256: {sha256}")
     return sha256
 
 def generate_release_notes(config, sha256):
@@ -111,7 +116,7 @@ def generate_release_notes(config, sha256):
     with open('RELEASE_NOTES.md', 'w', encoding='utf-8') as f:
         f.write(notes)
     
-    print(f"✓ Notas de release generadas: RELEASE_NOTES.md")
+    print(f"[INFO] Notas de release generadas: RELEASE_NOTES.md")
 
 def main():
     """Main build process"""
@@ -121,7 +126,7 @@ def main():
     
     # Load configuration
     config = load_config()
-    print(f"\n📦 Preparando build para v{config['version']}")
+    print(f"\n[INIT] Preparando build para v{config['version']}")
     
     # Update version.json
     version_data = update_version_file(config)
@@ -141,13 +146,13 @@ def main():
     size_mb = os.path.getsize(exe_path) / (1024 * 1024)
     
     print("\n" + "=" * 60)
-    print("✅ BUILD COMPLETADO")
+    print("[DONE] BUILD COMPLETADO")
     print("=" * 60)
     print(f"Versión: v{config['version']}")
     print(f"Ejecutable: {exe_path}")
     print(f"Tamaño: {size_mb:.2f} MB")
     print(f"SHA256: {sha256}")
-    print("\n📝 Próximos pasos:")
+    print("\n[NEXT] Próximos pasos:")
     print("1. Prueba el ejecutable localmente")
     print("2. Crea un tag: git tag v" + config['version'])
     print("3. Push del tag: git push origin v" + config['version'])
