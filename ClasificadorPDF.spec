@@ -1,0 +1,43 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+
+a = Analysis(
+    ['proglite.py'],
+    pathex=[],
+    binaries=[],
+    datas=[
+        ('Intramaq-logo-mail.png', '.'),
+        ('version.json', '.'),
+        ('build_config.json', '.')
+    ],
+    hiddenimports=[],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[],
+    noarchive=False,
+    optimize=0,
+)
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.datas,
+    [],
+    name='ClasificadorPDF',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=['Intramaq-logo-mail.png'],
+)
