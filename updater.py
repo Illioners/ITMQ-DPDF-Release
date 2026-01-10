@@ -74,7 +74,16 @@ def get_version_info():
     """Fetch version information from GitHub"""
     try:
         # Construct GitHub Pages URL for version.json
-        version_url = f"https://{GITHUB_REPO.split('/')[0]}.github.io/{GITHUB_REPO.split('/')[1]}/version.json"
+        # Hostname (username) should be lowercase for GitHub Pages
+        parts = GITHUB_REPO.split('/')
+        if len(parts) < 2:
+            return None
+            
+        repo_host = parts[0].lower()
+        repo_name = parts[1]
+        # Add cache buster to avoid stale version info
+        import time
+        version_url = f"https://{repo_host}.github.io/{repo_name}/version.json?t={int(time.time())}"
         
         request = urllib.request.Request(
             version_url,
@@ -85,12 +94,15 @@ def get_version_info():
         data = json.loads(response.read().decode('utf-8'))
         
         return data
+    except urllib.error.HTTPError as e:
+        print(f"HTTP Error {e.code}: {e.reason}")
+        return {"error": f"HTTP {e.code}: {e.reason}", "url": version_url}
     except urllib.error.URLError as e:
-        print(f"Network error: {e}")
-        return None
+        print(f"Network error: {e.reason}")
+        return {"error": str(e.reason)}
     except Exception as e:
         print(f"Error fetching version info: {e}")
-        return None
+        return {"error": str(e)}
 
 def check_for_updates(silent=False):
     """
@@ -105,11 +117,13 @@ def check_for_updates(silent=False):
     try:
         remote_data = get_version_info()
         
-        if not remote_data:
+        if not remote_data or "error" in remote_data:
             if not silent:
+                error_msg = remote_data.get("error", "Error desconocido") if remote_data else "No se pudo obtener información."
+                url_msg = f"\nURL: {remote_data.get('url', '')}" if remote_data and 'url' in remote_data else ""
                 messagebox.showerror(
                     "Error de Conexión",
-                    "No se pudo conectar al servidor de actualizaciones."
+                    f"No se pudo conectar al servidor de actualizaciones.\n\nDetalle: {error_msg}{url_msg}"
                 )
             return False, None
         
