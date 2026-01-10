@@ -164,12 +164,19 @@ def download_update(download_url, progress_callback=None):
         progress_callback: Function to call with progress (0-100)
     
     Returns:
-        Path to downloaded file or None if failed
+        tuple: (success, result_or_error_message)
     """
     try:
         # Create temp directory for download
         temp_dir = tempfile.gettempdir()
         temp_file = os.path.join(temp_dir, "ClasificadorPDF_update.exe")
+        
+        # Ensure we can write to the file
+        try:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+        except Exception as e:
+            return False, f"No se pudo limpiar el archivo temporal: {e}"
         
         # Download with progress
         request = urllib.request.Request(
@@ -177,7 +184,15 @@ def download_update(download_url, progress_callback=None):
             headers={'User-Agent': 'CLASSPDF-Updater'}
         )
         
-        response = urllib.request.urlopen(request, timeout=30)
+        try:
+            response = urllib.request.urlopen(request, timeout=30)
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return False, "Error 404: El archivo de actualización no se encuentra en el servidor. Puede que GitHub aún esté procesando el release."
+            return False, f"Error HTTP {e.code}: {e.reason}"
+        except urllib.error.URLError as e:
+            return False, f"Error de red: {e.reason}"
+            
         total_size = int(response.headers.get('content-length', 0))
         
         downloaded = 0
@@ -193,75 +208,85 @@ def download_update(download_url, progress_callback=None):
                     progress = int((downloaded / total_size) * 100)
                     progress_callback(progress)
         
-        return temp_file
+        return True, temp_file
         
     except Exception as e:
         print(f"Download error: {e}")
-        return None
+        return False, str(e)
 
 def install_update(update_file, expected_sha256=None):
     """
-    Install the downloaded update.
-    
-    Args:
-        update_file: Path to the downloaded update file
-        expected_sha256: Expected SHA256 hash (optional)
+    Verify and install update by replacing the current executable.
     
     Returns:
-        True if successful, False otherwise
+        bool: True if successful
     """
     try:
-        # Verify SHA256 if provided
+        # 1. Verify SHA256
         if expected_sha256:
+            print("[INFO] Verificando integridad del archivo...")
             actual_sha256 = calculate_sha256(update_file)
+            
             if actual_sha256.lower() != expected_sha256.lower():
                 messagebox.showerror(
-                    "Error de Verificación",
-                    "El archivo descargado está corrupto o ha sido modificado.\nLa actualización ha sido cancelada."
+                    "Error de Integridad",
+                    f"El archivo descargado está corrupto o no es válido.\n\n"
+                    f"Esperado: {expected_sha256[:10]}...\n"
+                    f"Obtenido: {actual_sha256[:10]}..."
                 )
                 return False
-        
-        # Get current executable path
+            print("[SUCCESS] Verificación SHA256 exitosa.")
+
+        # 2. Get current executable path
         if getattr(sys, 'frozen', False):
             current_exe = sys.executable
         else:
-            # Running from script, can't update
             messagebox.showwarning(
                 "Modo Desarrollo",
                 "La actualización automática solo funciona con el ejecutable compilado."
             )
             return False
+
+        # 3. Create batch script to replace the file after exit
+        backup_exe = current_exe + ".bak"
         
-        # Create backup
-        backup_path = current_exe + ".backup"
-        try:
-            shutil.copy2(current_exe, backup_path)
-        except Exception as e:
-            print(f"Backup creation failed: {e}")
-        
-        # Create update script
-        update_script = os.path.join(tempfile.gettempdir(), "update_classpdf.bat")
-        
-        with open(update_script, 'w') as f:
-            f.write(f"""@echo off
+        # We'll use a slightly more robust batch script
+        batch_content = f"""@echo off
+setlocal
+echo Finalizando para actualizar...
 timeout /t 2 /nobreak > nul
+
+:retry
 del /f /q "{current_exe}"
-move /y "{update_file}" "{current_exe}"
+if exist "{current_exe}" (
+    echo Esperando a que el proceso se cierre...
+    timeout /t 1 /nobreak > nul
+    goto retry
+)
+
+copy /y "{update_file}" "{current_exe}"
+if errorlevel 1 (
+    echo ERROR: No se pudo copiar el nuevo archivo.
+    pause
+    exit
+)
+
+del /f /q "{update_file}"
 start "" "{current_exe}"
-del /f /q "{backup_path}"
-del /f /q "%~f0"
-""")
+del /f /q "{backup_exe}"
+del "%~f0"
+"""
         
-        # Execute update script and exit
-        subprocess.Popen(update_script, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        batch_file = os.path.join(tempfile.gettempdir(), "update_helper.bat")
+        with open(batch_file, "w") as f:
+            f.write(batch_content)
         
+        # 4. Launch batch script and exit
+        subprocess.Popen([batch_file], shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
         return True
         
     except Exception as e:
-        messagebox.showerror(
-            "Error de Instalación",
-            f"No se pudo instalar la actualización:\n{str(e)}"
-        )
+        messagebox.showerror("Error de Instalación", f"No se pudo preparar la instalación:\n{str(e)}")
         return False
 
 class UpdateDialog(tk.Toplevel):
@@ -349,11 +374,22 @@ class UpdateDialog(tk.Toplevel):
                 
                 # Download
                 self.after(0, lambda: self.status_label.config(text="Descargando actualización..."))
-                update_file = download_update(download_url, self.update_progress)
+                success, result = download_update(download_url, self.update_progress)
                 
-                if not update_file or self.cancelled:
+                if not success:
+                    if not self.cancelled:
+                        self.after(0, lambda r=result: messagebox.showerror(
+                            "Error de Descarga",
+                            f"No se pudo descargar la actualización:\n\n{r}"
+                        ))
                     self.after(0, self.destroy)
                     return
+                
+                if self.cancelled:
+                    self.after(0, self.destroy)
+                    return
+
+                update_file = result
                 
                 # Install
                 self.after(0, lambda: self.status_label.config(text="Instalando actualización..."))

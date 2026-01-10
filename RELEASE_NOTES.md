@@ -1,10 +1,10 @@
-# Release v1.0.1
+# Release v1.0.2
 
 ## Información del Build
 
-- **Versión**: 1.0.1
-- **Fecha**: 2026-01-10 11:46
-- **SHA256**: `a7a3dc1f6196b8000ea888a24d5c3b4c2c2f77bd8dd6c3cd21e9787b02b92b5f`
+- **Versión**: 1.0.2
+- **Fecha**: 2026-01-10 11:56
+- **SHA256**: `eb9c0c7b05bf5e306044290e2fc9dfafcaa840279865425f8a956e9bdf80c9d6`
 
 ## Instalación
 
