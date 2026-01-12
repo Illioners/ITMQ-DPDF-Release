@@ -60,12 +60,16 @@ jobs:
         asset_name: ClasificadorPDF.exe
         asset_content_type: application/octet-stream
 
+    - name: Prepare version.json for deploy
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path deploy
+        Copy-Item version.json -Destination deploy/
+
     - name: Deploy Information to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: .
+        publish_dir: ./deploy
         publish_branch: gh-pages
-        destination_dir: .
-        keep_files: false
-        exclude_assets: '.git,.github,build,dist,venv,__pycache__,*.spec,*.py,*.png,*.md,*.json,!version.json'
+        force_orphan: true
