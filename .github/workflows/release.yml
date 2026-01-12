@@ -30,20 +30,14 @@ jobs:
       run: |
         python build.py
     
-    - name: Read version
-      id: version
+    - name: Get Version Metadata
+      id: metadata
       shell: pwsh
       run: |
-        $config = Get-Content build_config.json | ConvertFrom-Json
-        echo "VERSION=$($config.version)" >> $env:GITHUB_OUTPUT
-    
-    - name: Read SHA256
-      id: sha256
-      shell: pwsh
-      run: |
-        $version = Get-Content version.json | ConvertFrom-Json
-        echo "SHA256=$($version.sha256)" >> $env:GITHUB_OUTPUT
-    
+        $versionInfo = Get-Content version.json | ConvertFrom-Json
+        echo "VERSION=$($versionInfo.version)" >> $env:GITHUB_OUTPUT
+        echo "SHA256=$($versionInfo.sha256)" >> $env:GITHUB_OUTPUT
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -55,7 +49,7 @@ jobs:
         body_path: RELEASE_NOTES.md
         draft: false
         prerelease: false
-    
+
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
       env:
@@ -65,16 +59,13 @@ jobs:
         asset_path: ./dist/ClasificadorPDF.exe
         asset_name: ClasificadorPDF.exe
         asset_content_type: application/octet-stream
-    
-    - name: Prepare version.json for deploy
-      run: |
-        mkdir deploy
-        cp version.json deploy/
-    
-    - name: Deploy version.json to GitHub Pages
+
+    - name: Deploy Information to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./deploy
+        publish_dir: .
         publish_branch: gh-pages
-        force_orphan: true
+        destination_dir: .
+        keep_files: false
+        exclude_assets: '.git,.github,build,dist,venv,__pycache__,*.spec,*.py,*.png,*.md,*.json,!version.json'
