@@ -14,6 +14,8 @@ import tempfile
 from tkinter import messagebox
 import tkinter as tk
 from tkinter import ttk
+import re
+from datetime import datetime
 
 # Version will be loaded from build_config.json
 APP_VERSION = "1.0.0"
@@ -71,35 +73,63 @@ def compare_versions(v1, v2):
     return 0
 
 def get_version_info():
-    """Fetch version information from GitHub"""
+    """Fetch version information from GitHub Releases API"""
     try:
-        # Construct GitHub Pages URL for version.json
-        # Hostname (username) should be lowercase for GitHub Pages
         parts = GITHUB_REPO.split('/')
         if len(parts) < 2:
             return None
             
-        repo_host = parts[0].lower()
-        repo_name = parts[1]
-        # Add cache buster to avoid stale version info
-        import time
-        version_url = f"https://{repo_host}.github.io/{repo_name}/version.json?t={int(time.time())}"
+        owner = parts[0]
+        repo = parts[1]
+        
+        # GitHub API for latest release
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
         
         request = urllib.request.Request(
-            version_url,
-            headers={'User-Agent': 'CLASSPDF-Updater'}
+            api_url,
+            headers={
+                'User-Agent': 'CLASSPDF-Updater',
+                'Accept': 'application/vnd.github.v3+json'
+            }
         )
         
         response = urllib.request.urlopen(request, timeout=10)
-        data = json.loads(response.read().decode('utf-8'))
+        release_data = json.loads(response.read().decode('utf-8'))
         
-        return data
+        # Map API response to our internal format
+        version = release_data.get("tag_name", "v0.0.0").lstrip('v')
+        body = release_data.get("body", "")
+        
+        # Find download URL for ClasificadorPDF.exe
+        download_url = ""
+        for asset in release_data.get("assets", []):
+            if asset.get("name") == "ClasificadorPDF.exe":
+                download_url = asset.get("browser_download_url")
+                break
+        
+        # Extract SHA256 from body using regex
+        # Pattern looks for "SHA256: `hash`" or "SHA256**: `hash`" or just the 64-char hex string
+        sha256 = ""
+        sha_match = re.search(r'SHA256:\s*[`*]*([a-fA-F0-9]{64})[`*]*', body)
+        if sha_match:
+            sha256 = sha_match.group(1)
+        else:
+            # Fallback: look for any 64-char hex string
+            hex_matches = re.findall(r'([a-fA-F0-9]{64})', body)
+            if hex_matches:
+                sha256 = hex_matches[0]
+        
+        return {
+            "version": version,
+            "release_date": release_data.get("published_at", "")[:10],
+            "download_url": download_url,
+            "sha256": sha256,
+            "changelog": body,
+            "url": release_data.get("html_url", "")
+        }
     except urllib.error.HTTPError as e:
         print(f"HTTP Error {e.code}: {e.reason}")
-        return {"error": f"HTTP {e.code}: {e.reason}", "url": version_url}
-    except urllib.error.URLError as e:
-        print(f"Network error: {e.reason}")
-        return {"error": str(e.reason)}
+        return {"error": f"GitHub API Error {e.code}: {e.reason}"}
     except Exception as e:
         print(f"Error fetching version info: {e}")
         return {"error": str(e)}
