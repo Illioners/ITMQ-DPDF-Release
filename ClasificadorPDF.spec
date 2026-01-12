@@ -23,11 +23,11 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
+    a.binaries + [('python311.dll', 'C:\\Users\\tomas\\AppData\\Local\\Programs\\Python\\Python311\\python311.dll', 'BINARY')],
     a.datas,
     [],
     name='ClasificadorPDF',
-    debug=False,
+    debug=True, # Enable debug to see more detailed error in console
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
