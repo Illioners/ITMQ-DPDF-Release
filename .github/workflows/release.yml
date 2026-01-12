@@ -63,13 +63,14 @@ jobs:
     - name: Prepare version.json for deploy
       shell: pwsh
       run: |
-        New-Item -ItemType Directory -Force -Path deploy
-        Copy-Item version.json -Destination deploy/
-
+        mkdir -force deploy_metadata
+        cp version.json deploy_metadata/
+    
     - name: Deploy Information to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./deploy
+        publish_dir: ./deploy_metadata
         publish_branch: gh-pages
-        force_orphan: true
+        destination_dir: .
+        keep_files: false
