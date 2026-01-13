@@ -23,21 +23,21 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries + [('python311.dll', 'C:\\Users\\tomas\\AppData\\Local\\Programs\\Python\\Python311\\python311.dll', 'BINARY')],
+    a.binaries,
     a.datas,
     [],
     name='ClasificadorPDF',
-    debug=True, # Enable debug to see more detailed error in console
+    debug=True, # Keep debug to see detailed errors
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,
+    upx=False, # UPX is often the culprit for DLL errors
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True, # Keep console to capture logs
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None, # Temporarily removed icon to avoid potential issues if it's not a valid .ico
+    icon=None,
 )
