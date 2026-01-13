@@ -61,7 +61,9 @@ def build_executable(config):
         '--workpath=build',
         '--hidden-import=PIL',
         '--hidden-import=fitz',
-        '--hidden-import=pytesseract'
+        '--hidden-import=pytesseract',
+        '--collect-all=fitz',
+        '--collect-all=PIL'
     ]
     
     try:
@@ -69,6 +71,16 @@ def build_executable(config):
         PyInstaller.__main__.run(args)
         
         exe_path = get_abs_path(os.path.join('dist', 'ClasificadorPDF.exe'))
+        
+        # FIRMA DIGITAL (Self-Signed)
+        pfx_path = get_abs_path("TC_CodeSigning.pfx")
+        if os.path.exists(pfx_path) and os.path.exists(exe_path):
+            print("\n[SIGN] Firmando ejecutable...")
+            # Use PowerShell to sign avoiding external signtool dependency
+            ps_command = f'$cert = Get-PfxCertificate -FilePath "{pfx_path}" -Password (ConvertTo-SecureString -String "ClasificadorPDF2026" -Force -AsPlainText); Set-AuthenticodeSignature -FilePath "{exe_path}" -Certificate $cert'
+            subprocess.run(["powershell", "-Command", ps_command], capture_output=True)
+            print("[SIGN] Firma aplicada exitosamente.")
+            
         return exe_path
     except Exception as e:
         print(f"[ERROR] Fallo en PyInstaller: {e}")
