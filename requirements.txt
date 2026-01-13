@@ -1,5 +1,4 @@
-nuitka
-zstandard
+pyinstaller
 pillow
 pymupdf
 pytesseract

@@ -43,41 +43,36 @@ def calculate_sha256(file_path):
     return sha256_hash.hexdigest()
 
 def build_executable(config):
-    print("\n[BUILD] Compilando aplicación con Nuitka...")
+    print("\n[BUILD] Compilando aplicación con PyInstaller...")
     script_path = get_abs_path('proglite.py')
     
-    # Nuitka command for standalone onefile build
-    command = [
-        sys.executable, "-m", "nuitka",
-        "--standalone",
-        "--onefile",
-        "--windows-disable-console",
-        "--enable-plugin=tk-inter",
-        "--assume-yes-for-downloads",
-        "--include-package=fitz",
-        "--include-package=PIL",
-        "--include-package=pytesseract",
-        "--include-package-data=fitz",
-        "--include-package-data=PIL",
-        f"--include-data-file={get_abs_path('Intramaq-logo-mail.png')}=Intramaq-logo-mail.png",
-        f"--include-data-file={get_abs_path('version.json')}=version.json",
-        f"--include-data-file={get_abs_path('build_config.json')}=build_config.json",
-        "--output-dir=dist",
-        "--output-filename=ClasificadorPDF.exe",
-        "--remove-output",
-        "--no-pyi-file",
-        script_path
+    # Argumentos para PyInstaller
+    args = [
+        script_path,
+        '--name=ClasificadorPDF',
+        '--onefile',
+        '--windowed',
+        f'--add-data={get_abs_path("Intramaq-logo-mail.png")};.',
+        f'--add-data={get_abs_path("version.json")};.',
+        f'--add-data={get_abs_path("build_config.json")};.',
+        '--clean',
+        '--noconfirm',
+        '--distpath=dist',
+        '--workpath=build',
+        '--hidden-import=PIL',
+        '--hidden-import=fitz',
+        '--hidden-import=pytesseract'
     ]
     
-    print(f"Ejecutando: {' '.join(command)}")
-    result = subprocess.run(command)
-    
-    if result.returncode != 0:
-        print("[ERROR] Fallo en la compilación con Nuitka")
+    try:
+        import PyInstaller.__main__
+        PyInstaller.__main__.run(args)
+        
+        exe_path = get_abs_path(os.path.join('dist', 'ClasificadorPDF.exe'))
+        return exe_path
+    except Exception as e:
+        print(f"[ERROR] Fallo en PyInstaller: {e}")
         return None
-    
-    exe_path = get_abs_path(os.path.join('dist', 'ClasificadorPDF.exe'))
-    return exe_path
 
 def main():
     config = load_config()
