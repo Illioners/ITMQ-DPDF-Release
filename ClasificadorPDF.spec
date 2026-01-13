@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
     ['proglite.py'],
     pathex=[],
@@ -23,6 +22,8 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
+    # This block below is what makes it a onefile build
+    # By including binaries and datas directly in EXE
     a.binaries,
     a.datas,
     [],

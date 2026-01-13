@@ -20,13 +20,14 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller pillow pymupdf pytesseract
+        pip install nuitka zstandard pillow pymupdf pytesseract
     
-    - name: Build executable
+    - name: Build Executable (Nuitka)
       run: |
         python build.py
     
@@ -38,25 +39,16 @@ jobs:
         echo "VERSION=$($versionInfo.version)" >> $env:GITHUB_OUTPUT
         echo "SHA256=$($versionInfo.sha256)" >> $env:GITHUB_OUTPUT
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Release to Public Repo
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref_name }}
+        repository: Illioners/ITMQ-DPDF-Release
+        token: ${{ secrets.RELEASE_TOKEN }}
+        tag_name: v${{ steps.metadata.outputs.VERSION }}
+        name: Release v${{ steps.metadata.outputs.VERSION }}
         body_path: RELEASE_NOTES.md
+        files: |
+          dist/ClasificadorPDF.exe
+          version.json
         draft: false
         prerelease: false
-
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/ClasificadorPDF.exe
-        asset_name: ClasificadorPDF.exe
-        asset_content_type: application/octet-stream
-

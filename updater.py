@@ -8,7 +8,6 @@ import urllib.error
 import os
 import sys
 import hashlib
-import shutil
 import subprocess
 import tempfile
 from tkinter import messagebox
@@ -100,6 +99,19 @@ def get_version_info():
         version = release_data.get("tag_name", "v0.0.0").lstrip('v')
         body = release_data.get("body", "")
         
+        # Find version.json asset for detailed metadata
+        version_data = {}
+        for asset in release_data.get("assets", []):
+            if asset.get("name") == "version.json":
+                try:
+                    v_url = asset.get("browser_download_url")
+                    v_request = urllib.request.Request(v_url, headers={'User-Agent': 'CLASSPDF-Updater'})
+                    v_response = urllib.request.urlopen(v_request, timeout=10)
+                    version_data = json.loads(v_response.read().decode('utf-8'))
+                except Exception as e:
+                    print(f"Could not load version.json asset: {e}")
+                break
+
         # Find download URL for ClasificadorPDF.exe
         download_url = ""
         for asset in release_data.get("assets", []):
@@ -107,24 +119,27 @@ def get_version_info():
                 download_url = asset.get("browser_download_url")
                 break
         
-        # Extract SHA256 from body using regex
-        # Pattern looks for "SHA256: `hash`" or "SHA256**: `hash`" or just the 64-char hex string
-        sha256 = ""
-        sha_match = re.search(r'SHA256:\s*[`*]*([a-fA-F0-9]{64})[`*]*', body)
-        if sha_match:
-            sha256 = sha_match.group(1)
-        else:
-            # Fallback: look for any 64-char hex string
-            hex_matches = re.findall(r'([a-fA-F0-9]{64})', body)
-            if hex_matches:
-                sha256 = hex_matches[0]
+        # Determine version and SHA256
+        # Prioritize version.json, fallback to API/Body
+        version = version_data.get("version", release_data.get("tag_name", "v0.0.0").lstrip('v'))
+        sha256 = version_data.get("sha256", "")
+        
+        if not sha256:
+            # Extract SHA256 from body using regex (fallback)
+            sha_match = re.search(r'SHA256:\s*[`*]*([a-fA-F0-9]{64})[`*]*', body)
+            if sha_match:
+                sha256 = sha_match.group(1)
+            else:
+                hex_matches = re.findall(r'([a-fA-F0-9]{64})', body)
+                if hex_matches:
+                    sha256 = hex_matches[0]
         
         return {
             "version": version,
-            "release_date": release_data.get("published_at", "")[:10],
+            "release_date": version_data.get("release_date", release_data.get("published_at", "")[:10]),
             "download_url": download_url,
             "sha256": sha256,
-            "changelog": body,
+            "changelog": version_data.get("changelog", body),
             "url": release_data.get("html_url", "")
         }
     except urllib.error.HTTPError as e:

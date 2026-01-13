@@ -41,10 +41,10 @@ ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 # --- CONFIGURATION & STYLING ---
 THEMES = {
     "light": {
-        "BLUE": "#007AFF",
-        "BLUE_HOVER": "#0062CC",
-        "BLUE_LIGHT": "#E5F1FF",
-        "RED": "#FF3B30",
+        "BLUE": "#E67E22",
+        "BLUE_HOVER": "#D35400",
+        "BLUE_LIGHT": "#FDEBD0",
+        "RED": "#E74C3C",
         "GREEN": "#27AE60", # Nature Green
         "BG": "#F5F2EB", # Deeper Warm Cream (Less stark)
         "SURFACE": "#FDFBF7", # Very light warm white (Not pure white)
@@ -69,14 +69,6 @@ THEMES = {
 }
 
 COLORS = THEMES[CURRENT_THEME]
-# Update Primary Blue to Terracotta for Light mode
-THEMES["light"]["BLUE"] = "#E67E22"
-THEMES["light"]["BLUE_HOVER"] = "#D35400"
-THEMES["light"]["BLUE_LIGHT"] = "#FDEBD0"
-THEMES["light"]["RED"] = "#E74C3C"
-
-# Pre-compiled keywords
-ID_KEYWORDS = re.compile(r'cedula|ciudadania|identidad|nombres')
 
 FONTS = {
     "MAIN": ("Inter", 10),
@@ -99,18 +91,19 @@ PROFILES = {
             ("CTO", "Contrato laboral"), ("PRE", "Preaviso (Fijo)"), ("EXS", "Otro si (EXS)"),
             ("ARL", "ARL"), ("FEPS", "Formulario EPS"), ("EPS", "EPS"), ("AFP", "AFP"),
             ("FCCF", "Formulario CCF"), ("CCF", "CCF"), ("ADRES", "ADRES"), ("RUAF", "RUAF"),
-            ("RC", "Registro Civil"), ("DOCB", "Docs Beneficiarios"), ("NOIB", "No inclusión"),
+            ("RC", "Registro Civil"), ("DOCB", "Documentos Beneficiarios"), ("NOIB", "No inclusión"),
             ("HVE", "Hoja de vida externa"), ("EI", "Entrevista"), ("PSI", "Psicotécnicas"),
             ("PC", "Perfil de cargo"), ("AUT", "Autorización datos"), ("ANT", "Antecedentes"), 
             ("CV", "Carnet vacunas"), ("RT", "Registro retefuente"), ("CB", "C. Bancario"), ("LC", "Licencia"),
-            ("CL", "C. Laborales"), ("CE", "C. Estudios"), ("GEO", "GeoVictoria"), ("PO", "Póliza"),
-            ("APL", "Aceptación laboral")
+            ("CL", "Certificados Laborales"), ("CE", "Certificados Estudios"), ("GEO", "GeoVictoria"), ("PO", "Póliza"),
+            ("APL", "Aceptación laboral"), ("DOC", "Documentos Adicionales")
         ],
         "SEGMENTS": {
             "A. Contrato y afiliaciones": ["CC", "RQ", "HVI", "CTO", "PRE", "EXS", "ARL", "FEPS", "EPS", "AFP", "FCCF", "CCF", "ADRES", "RUAF", "RC", "DOCB", "NOIB"],
             "B. Documentos de ingreso": ["HVE", "EI", "PSI", "PC", "AUT", "ANT", "CV", "RT", "CB", "LC"],
             "C. Certificaciones": ["CL", "CE"],
-            "D. Comunicaciones": ["GEO", "PO", "APL"]
+            "D. Comunicaciones": ["GEO", "PO", "APL"],
+            "E. Documentos Adicionales": ["DOC"]
         }
     },
     "Simplificado": {
@@ -1119,9 +1112,14 @@ class EditorWindow(tk.Toplevel):
         
         if not current_seg_name: return # Should not happen
 
-        # 2. CLEAR SIDEBAR
+        # 2. CLEAR SIDEBAR only if necessary
+        # Optimization: only rebuild if segment changed or counts updated
+        curr_state = (current_seg_name, self.current_idx, {a: len(p) for a, p in self.results.items() if a in current_seg_abbrs})
+        if hasattr(self, "_last_sb_state") and self._last_sb_state == curr_state:
+            return
+        self._last_sb_state = curr_state
+
         for w in self.sb_frame.winfo_children():
-            w.pack_forget()
             w.destroy()
         self._sb_widgets = {}
 
@@ -1231,10 +1229,10 @@ class EditorWindow(tk.Toplevel):
         if not self.check_cedula_enforcement(): return
         # Jump to start of next segment
         current_seg = None
-        curr_abbr = CATEGORIES[self.current_idx][0]
+        curr_abbr = self.categories[self.current_idx][0]
         
         # Find current segment
-        for seg, abbrs in SEGMENTS.items():
+        for seg, abbrs in self.segments.items():
             if curr_abbr in abbrs:
                 current_seg = seg
                 break
@@ -1242,15 +1240,15 @@ class EditorWindow(tk.Toplevel):
         if not current_seg: return
 
         # Find next segment
-        seg_names = list(SEGMENTS.keys())
+        seg_names = list(self.segments.keys())
         try:
             curr_seg_idx = seg_names.index(current_seg)
             if curr_seg_idx < len(seg_names) - 1:
                 next_seg_name = seg_names[curr_seg_idx + 1]
-                target_abbr = SEGMENTS[next_seg_name][0]
+                target_abbr = self.segments[next_seg_name][0]
                 
-                # Find index of target_abbr in CATEGORIES
-                for i, (a, n) in enumerate(CATEGORIES):
+                # Find index of target_abbr in self.categories
+                for i, (a, n) in enumerate(self.categories):
                     if a == target_abbr:
                         self.go_to(i)
                         return
@@ -1259,10 +1257,10 @@ class EditorWindow(tk.Toplevel):
     def prev_segment(self):
         # Jump to start of previous segment
         current_seg = None
-        curr_abbr = CATEGORIES[self.current_idx][0]
+        curr_abbr = self.categories[self.current_idx][0]
         
         # Find current segment
-        for seg, abbrs in SEGMENTS.items():
+        for seg, abbrs in self.segments.items():
             if curr_abbr in abbrs:
                 current_seg = seg
                 break
@@ -1270,15 +1268,15 @@ class EditorWindow(tk.Toplevel):
         if not current_seg: return
 
         # Find prev segment
-        seg_names = list(SEGMENTS.keys())
+        seg_names = list(self.segments.keys())
         try:
             curr_seg_idx = seg_names.index(current_seg)
             if curr_seg_idx > 0:
                 prev_seg_name = seg_names[curr_seg_idx - 1]
-                target_abbr = SEGMENTS[prev_seg_name][0]
+                target_abbr = self.segments[prev_seg_name][0]
                 
-                # Find index of target_abbr in CATEGORIES
-                for i, (a, n) in enumerate(CATEGORIES):
+                # Find index of target_abbr in self.categories
+                for i, (a, n) in enumerate(self.categories):
                     if a == target_abbr:
                         self.go_to(i)
                         return
@@ -1290,7 +1288,7 @@ class EditorWindow(tk.Toplevel):
         self.update_step_ui()
 
     def next_step(self):
-        curr_abbr = CATEGORIES[self.current_idx][0]
+        curr_abbr = self.categories[self.current_idx][0]
         
         # Enforce Cedula check (unless we are currently solving the CC step itself)
         if curr_abbr != "CC":
@@ -1345,7 +1343,7 @@ class EditorWindow(tk.Toplevel):
             self.update_step_ui()
 
     def prev_step(self):
-        if self.current_idx > -1:
+        if self.current_idx > 0:
             self.last_clicked_idx = None
             self.current_idx -= 1
             self.update_step_ui()
@@ -1445,6 +1443,13 @@ class EditorWindow(tk.Toplevel):
                     f.write("Todos los documentos obligatorios presentes.\n")
                 
                 f.write("\n" + "="*40 + "\n")
+                f.write("PÁGINAS PROCESADAS:\n")
+                for abbr, pages in self.results.items():
+                    if pages:
+                        cat_name = next((name for a, name in self.categories if a == abbr), abbr)
+                        f.write(f"- {cat_name} ({abbr}): {len(pages)} página(s)\n")
+                
+                f.write("\n" + "="*40 + "\n")
                 f.write(f"Total Categorias Procesadas: {processed_count}\n")
         except Exception as e:
             print(f"Error creating record: {e}")
@@ -1470,13 +1475,13 @@ class MainApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Intramaq PDF Class")
-        self.root.geometry("700x600")
+        self.root.geometry("850x700")
         self.root.configure(bg=COLORS["BG"])
         self.queue = []
         self.selected_profile = tk.StringVar(value=DEFAULT_PROFILE)
         
         self.container = tk.Frame(root, bg=COLORS["BG"])
-        self.container.place(relx=0.5, rely=0.5, anchor="center")
+        self.container.pack(expand=True)
         
         self.lbl_title = tk.Label(self.container, text="Digitalizador", font=FONTS["TITLE"], bg=COLORS["BG"], fg=COLORS["TEXT"])
         self.lbl_title.pack()
@@ -1506,10 +1511,10 @@ class MainApp:
         self.btn_update.pack(pady=5)
         
         self.btn_settings = tk.Button(root, text="⚙️", command=self.open_settings, bd=0, bg=COLORS["BG"], fg=COLORS["TEXT"], font=("Segoe UI", 14), cursor="hand2")
-        self.btn_settings.place(x=20, y=20)
+        self.btn_settings.pack(side="top", anchor="nw", padx=20, pady=20)
 
         self.lbl_footer = tk.Label(root, text="Tomás Posada Castro - 2026 | v" + updater.APP_VERSION, font=("Segoe UI", 8), fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
-        self.lbl_footer.place(relx=0.5, rely=0.95, anchor="center")
+        self.lbl_footer.pack(side="bottom", pady=15)
         
         # Auto-check for updates on startup (silent)
         self.root.after(2000, self.auto_check_updates)
