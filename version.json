@@ -2,7 +2,7 @@
   "version": "1.3.2",
   "release_date": "2026-01-13",
   "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.3.2/ClasificadorPDF.exe",
-  "sha256": "90c58a7623e3e32f05b98cee7cb0081e476456d105598ed32f439597a752861a",
+  "sha256": "0258bf8fd40face71b4d476942cebcea9e58f01e84c3111905b8cbba4f1c3814",
   "changelog": "- Eliminada firma digital\n- Optimización del proceso de compilación\n- Limpieza de archivos innecesarios",
   "min_version": "1.0.0"
 }

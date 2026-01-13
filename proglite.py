@@ -1748,7 +1748,18 @@ class SplashScreen(tk.Toplevel):
             self.attributes("-alpha", alpha)
             self.after(20, lambda: self.fade_out(alpha))
 
-def main():
+    # High-DPI Awareness
+    try:
+        from ctypes import windll
+        # SetProcessDpiAwareness(1) for Win 8.1 and 10+
+        # SetProcessDPIAware() for Win Vista to 8
+        try:
+            windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            windll.user32.SetProcessDPIAware()
+    except Exception as e:
+        print(f"DPI Awareness error: {e}")
+
     root = tk.Tk()
     root.withdraw() # Hide main window initially
     
