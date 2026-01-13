@@ -1,16 +1,16 @@
-# Release v1.2.1 (Mejoras en Actualización)
+# Release v1.2.2 (Versión de Prueba)
 
 ## Información del Build
 
-- **Versión**: 1.2.1
+- **Versión**: 1.2.2
 - **Fecha**: 2026-01-13
 - **SHA256**: `Calculado durante build`
 
-## Mejoras en la Experiencia de Usuario
+## Propósito de Esta Versión
 
-- **ACTUALIZACIÓN**: Eliminada la ventana emergente de error de Python al instalar actualizaciones.
-- **NOTIFICACIÓN**: Agregada ventana de éxito que informa al usuario cuando la actualización se ha completado correctamente.
-- **ESTABILIDAD**: Uso de `os._exit(0)` para garantizar un cierre limpio durante el proceso de reemplazo del ejecutable.
+- **PRUEBA**: Esta es una versión de prueba para validar el sistema de actualizaciones automáticas.
+- **ACTUALIZACIÓN**: Los usuarios con v1.2.1 deberían recibir automáticamente la notificación de actualización.
+- **VALIDACIÓN**: Confirma que el proceso de actualización funciona correctamente sin errores.
 
 1. Descarga `ClasificadorPDF.exe`
 2. Verifica el hash SHA256 (opcional pero recomendado)
