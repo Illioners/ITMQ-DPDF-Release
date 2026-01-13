@@ -1,12 +1,14 @@
-# Release v1.1.1
+# Release v1.1.2
 
 ## Información del Build
 
-- **Versión**: 1.1.1
+- **Versión**: 1.1.2
 - **Fecha**: 2026-01-13
 - **SHA256**: `Calculated during build`
 
-## Instalación
+## Notas
+
+- Versión de prueba para verificar el sistema de actualizaciones automáticas.
 
 1. Descarga `ClasificadorPDF.exe`
 2. Verifica el hash SHA256 (opcional pero recomendado)
