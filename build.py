@@ -26,7 +26,7 @@ def update_version_file(config):
         "release_date": datetime.now().strftime("%Y-%m-%d"),
         "download_url": f"https://github.com/{repo}/releases/download/v{version}/ClasificadorPDF.exe",
         "sha256": "",
-        "changelog": "- Versión estable v1.1.1\n- Mejoras de rendimiento y limpieza de código\n- Categoría DOC añadida",
+        "changelog": "- Eliminado error de Python al actualizar\n- Agregada notificación de éxito tras la instalación\n- Cierre de proceso optimizado",
         "min_version": "1.0.0"
     }
     
@@ -61,8 +61,6 @@ def build_executable(config):
         '--workpath=build',
         '--hidden-import=PIL',
         '--hidden-import=fitz',
-        '--hidden-import=pytesseract',
-        '--collect-all=fitz',
         '--collect-all=fitz',
         '--collect-all=PIL',
         f'--manifest={get_abs_path("uac_manifest.xml")}'

@@ -1,17 +1,16 @@
-# Release v1.2.0 (Auditoría & Seguridad)
+# Release v1.2.1 (Mejoras en Actualización)
 
 ## Información del Build
 
-- **Versión**: 1.2.0
+- **Versión**: 1.2.1
 - **Fecha**: 2026-01-13
 - **SHA256**: `Calculado durante build`
 
-## Notas de Seguridad y Auditoría
+## Mejoras en la Experiencia de Usuario
 
-- **SEGURIDAD**: Implementada verificación obligatoria de hash SHA256 para actualizaciones. Previene archivos corruptos o modificados.
-- **AUDITORÍA**: Limpieza exhaustiva de bloques `except` vacíos. Mejora la estabilidad y facilita el diagnóstico de errores.
-- **OPTIMIZACIÓN**: Carpeta temporal de unión de PDFs movida a `APP_DATA_DIR` para evitar desorden en Documentos.
-- **RENDIMIENTO**: Mejoras adicionales en el motor de renderizado y manejo de memoria.
+- **ACTUALIZACIÓN**: Eliminada la ventana emergente de error de Python al instalar actualizaciones.
+- **NOTIFICACIÓN**: Agregada ventana de éxito que informa al usuario cuando la actualización se ha completado correctamente.
+- **ESTABILIDAD**: Uso de `os._exit(0)` para garantizar un cierre limpio durante el proceso de reemplazo del ejecutable.
 
 1. Descarga `ClasificadorPDF.exe`
 2. Verifica el hash SHA256 (opcional pero recomendado)

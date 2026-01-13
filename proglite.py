@@ -87,13 +87,7 @@ FONTS = {
     "TITLE": ("Inter", 22, "bold"),
     "SUBTITLE": ("Inter", 11),
 }
-# Fallback font handling
-try:
-    import tkinter.font as tkfont
-    if "Inter" not in tkfont.families():
-        FONTS = {k: ("Segoe UI", v[1], v[2] if len(v)>2 else "normal") for k, v in FONTS.items()}
-except Exception as e:
-    print(f"Font loading fallback error: {e}")
+# Fallback font handling will be done in main() after root initialization
 
 # --- PROFILES & CATEGORIES ---
 PROFILES = {
@@ -477,7 +471,13 @@ class SettingsWindow(tk.Toplevel):
         footer.pack(side="bottom", fill="x", pady=20)
         
         tk.Label(footer, text=f"Versión {updater.APP_VERSION}", font=("Inter", 8), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack()
+        RoundedButton(footer, "REINSTALAR APLICACIÓN", command=self.reinstall_app, color=COLORS["ACCENT"], fg_color=COLORS["BLUE"], width=200).pack(pady=5)
         RoundedButton(footer, "CERRAR", command=self.destroy, width=200).pack(pady=10)
+
+    def reinstall_app(self):
+        """Forces the update dialog even if versions match"""
+        self.destroy() # Close settings before opening update dialog
+        updater.force_reinstall(self.master)
 
     def save(self):
         global CURRENT_THEME, ANIMATIONS_ENABLED, COLORS, UI_SETTINGS
@@ -1728,8 +1728,20 @@ def main():
     root = tk.Tk()
     root.withdraw() # Hide main window initially
     
+    # Fallback font handling - MUST be after root creation
+    try:
+        import tkinter.font as tkfont
+        if "Inter" not in tkfont.families():
+            global FONTS
+            FONTS = {k: ("Segoe UI", v[1], v[2] if len(v)>2 else "normal") for k, v in FONTS.items()}
+    except Exception as e:
+        print(f"Font loading fallback error: {e}")
+    
     def launch_main():
         root.deiconify()
+        # Show success message if updated
+        if "--updated" in sys.argv:
+            messagebox.showinfo("Actualización Exitosa", "¡La aplicación se ha actualizado correctamente a la versión " + updater.APP_VERSION + "!")
         MainApp(root)
     
     def resource_path(relative_path):

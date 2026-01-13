@@ -192,6 +192,36 @@ def check_for_updates(silent=False):
             )
         return False, None
 
+def force_reinstall(parent):
+    """
+    Fetch latest version info and show download dialog regardless of version.
+    Useful for repairing installations or forcing a refresh.
+    """
+    try:
+        remote_data = get_version_info()
+        
+        if not remote_data or "error" in remote_data:
+            error_msg = remote_data.get("error", "Error desconocido") if remote_data else "No se pudo obtener información."
+            messagebox.showerror(
+                "Error de Conexión",
+                f"No se pudo conectar al servidor de actualizaciones.\n\nDetalle: {error_msg}"
+            )
+            return
+        
+        version = remote_data.get("version", "Unknown")
+        changelog = remote_data.get("changelog", "No hay información de cambios.")
+        
+        message = f"¿Desea reinstalar la aplicación?\n\n"
+        message += f"Sincronizando con la última versión disponible: v{version}\n"
+        message += f"\nNotas de la versión:\n{changelog}\n\n"
+        message += "Esto descargará e instalará el ejecutable nuevamente."
+        
+        if messagebox.askyesno("Reinstalar Aplicación", message):
+            UpdateDialog(parent, remote_data)
+            
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al preparar la reinstalación:\n{str(e)}")
+
 def calculate_sha256(file_path):
     """Calculate SHA256 hash of a file"""
     sha256_hash = hashlib.sha256()
@@ -329,7 +359,7 @@ if errorlevel 1 (
 echo [3/3] Actualizacion completada con exito.
 echo.
 echo Reiniciando ClasificadorPDF...
-start "" "{current_exe}"
+start "" "{current_exe}" --updated
 timeout /t 2 > nul
 (goto) 2>nul & del "%~f0"
 exit
@@ -452,7 +482,8 @@ class UpdateDialog(tk.Toplevel):
                 self.after(0, lambda: self.status_label.config(text="Iniciando instalador..."))
                 if install_update(downloaded_file, version):
                     # Small delay to ensure CMD window is visible before app exits
-                    self.after(500, lambda: sys.exit(0))
+                    # Use os._exit to prevent PyInstaller exit-time error popups
+                    self.after(500, lambda: os._exit(0))
                 else:
                     self.after(0, self.destroy)
                     

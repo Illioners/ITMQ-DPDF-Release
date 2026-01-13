@@ -3,9 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('C:\\Users\\tomas\\Desktop\\CLASSPDF\\Intramaq-logo-mail.png', '.'), ('C:\\Users\\tomas\\Desktop\\CLASSPDF\\version.json', '.'), ('C:\\Users\\tomas\\Desktop\\CLASSPDF\\build_config.json', '.')]
 binaries = []
-hiddenimports = ['PIL', 'fitz', 'pytesseract']
-tmp_ret = collect_all('fitz')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+hiddenimports = ['PIL', 'fitz']
 tmp_ret = collect_all('fitz')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('PIL')
