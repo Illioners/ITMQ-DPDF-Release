@@ -1,14 +1,15 @@
-# Release v1.1.2
+# Release v1.1.3
 
 ## Información del Build
 
-- **Versión**: 1.1.2
+- **Versión**: 1.1.3
 - **Fecha**: 2026-01-13
 - **SHA256**: `Calculated during build`
 
 ## Notas
 
-- Versión de prueba para verificar el sistema de actualizaciones automáticas.
+- Versión compilada con PyInstaller para despliegue rápido.
+- Prueba de actualización automática desde v1.1.2.
 
 1. Descarga `ClasificadorPDF.exe`
 2. Verifica el hash SHA256 (opcional pero recomendado)
