@@ -27,13 +27,13 @@ exe = EXE(
     a.datas,
     [],
     name='ClasificadorPDF',
-    debug=True, # Keep debug to see detailed errors
+    debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False, # UPX is often the culprit for DLL errors
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True, # Keep console to capture logs
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
