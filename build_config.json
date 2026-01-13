@@ -1,6 +1,6 @@
 {
     "app_name": "ClasificadorPDF",
-    "version": "1.3.3",
+    "version": "1.3.4",
     "github_repo": "Illioners/ITMQ-DPDF-Release",
     "auto_check_updates": true
 }
