@@ -14,7 +14,15 @@ import sys
 import updater
 
 # --- GLOBAL SETTINGS & PERSISTENCE ---
-SETTINGS_FILE = "user_settings.json"
+# --- GLOBAL SETTINGS & PERSISTENCE ---
+# Use LOCALAPPDATA to avoid permission issues in Program Files or Network Drives
+APP_DATA_DIR = os.path.join(os.getenv('LOCALAPPDATA', os.path.expanduser('~')), "ClasificadorPDF")
+if not os.path.exists(APP_DATA_DIR):
+    try:
+        os.makedirs(APP_DATA_DIR)
+    except: pass
+
+SETTINGS_FILE = os.path.join(APP_DATA_DIR, "user_settings.json")
 DEFAULT_SETTINGS = {
     "theme": "light",
     "animations": True

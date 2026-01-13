@@ -213,8 +213,14 @@ def download_update(download_url, progress_callback=None):
     """
     try:
         # Create temp directory for download
-        temp_dir = tempfile.gettempdir()
-        temp_file = os.path.join(temp_dir, "ClasificadorPDF_update.exe")
+        # Use LOCALAPPDATA for updates to avoid permission issues
+        app_data_dir = os.path.join(os.getenv('LOCALAPPDATA', os.path.expanduser('~')), "ClasificadorPDF", "Updates")
+        if not os.path.exists(app_data_dir):
+            try:
+                os.makedirs(app_data_dir)
+            except: pass
+            
+        temp_file = os.path.join(app_data_dir, "ClasificadorPDF_update.exe")
         
         # Ensure we can write to the file
         try:
