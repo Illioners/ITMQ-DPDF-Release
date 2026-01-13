@@ -53,7 +53,6 @@ def build_executable(config):
         "--onefile",
         "--windows-disable-console",
         "--enable-plugin=tk-inter",
-        "--no-color",
         "--assume-yes-for-downloads",
         "--include-package=fitz",
         "--include-package=PIL",
@@ -100,6 +99,7 @@ def main():
         print("="*40)
     else:
         print("[ERROR] No se encontró el ejecutable generado.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
