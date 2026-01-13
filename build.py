@@ -64,7 +64,7 @@ def build_executable(config):
         f"--include-data-file={get_abs_path('version.json')}=.",
         f"--include-data-file={get_abs_path('build_config.json')}=.",
         "--output-dir=dist",
-        "--output-filename=ClasificadorPDF",
+        "--output-filename=ClasificadorPDF.exe",
         "--remove-output",
         "--no-pyi-file",
         script_path
