@@ -178,7 +178,10 @@ class UpdaterUI(tk.Tk):
             filename = os.path.basename(self.target_path)
             logger.info(f"Attempting to force kill: {filename}")
             # Use taskkill on Windows
-            subprocess.run(["taskkill", "/F", "/IM", filename, "/T"], capture_output=True)
+            result = subprocess.run(["taskkill", "/F", "/IM", filename, "/T"], capture_output=True, text=True)
+            logger.info(f"Taskkill output: {result.stdout}")
+            if result.stderr:
+                logger.warning(f"Taskkill error output: {result.stderr}")
         except Exception as e:
             logger.warning(f"Failed to force kill {filename}: {e}")
 
@@ -191,18 +194,24 @@ class UpdaterUI(tk.Tk):
             try:
                 # Si el archivo no existe (raro), consideramos que está "cerrado"
                 if not os.path.exists(self.target_path):
+                    logger.info("Target file does not exist, assuming it's closed.")
                     return True
                     
                 # Intentamos renombrar para verificar bloqueo
                 test_name = self.target_path + ".test"
                 if os.path.exists(test_name):
-                    os.remove(test_name)
+                    try:
+                        os.remove(test_name)
+                    except:
+                        pass
                 
                 os.rename(self.target_path, test_name)
+                # Volver a su sitio
                 os.rename(test_name, self.target_path)
+                logger.info("Target file is NOT locked.")
                 return True
-            except (IOError, OSError):
-                logger.info(f"Target is locked, retry {retries}...")
+            except (IOError, OSError) as e:
+                logger.info(f"Target is locked (Attempt {11-retries}): {e}")
                 time.sleep(1)
                 retries -= 1
         
@@ -288,19 +297,36 @@ class UpdaterUI(tk.Tk):
             logger.error(f"Cleanup error: {e}")
 
 def main():
-    logger.info("--- UPDATER SESSION START ---")
+    logger.info(f"--- UPDATER SESSION START --- Args: {sys.argv}")
     parser = argparse.ArgumentParser(description="ITMQ Updater")
     parser.add_argument("--target", required=True, help="Path to the executable to update")
     parser.add_argument("--url", required=True, help="Download URL for the new version")
     parser.add_argument("--version", required=True, help="New version number")
-    parser.add_argument("--restart-args", nargs="*", default=[], help="Arguments to pass to the app on restart")
+    # Using REMAINDER to capture all subsequent args correctly
+    parser.add_argument("--restart-args", nargs=argparse.REMAINDER, help="Arguments to pass to the app on restart")
     
     try:
         args = parser.parse_args()
     except Exception as e:
         logger.error(f"Argument parsing error: {e}")
-        sys.exit(1)
-    
+        # Manual fallback if argparse fails on complex flags
+        try:
+             # Very basic fallback for common structure
+             args = argparse.Namespace()
+             args.target = sys.argv[sys.argv.index("--target") + 1]
+             args.url = sys.argv[sys.argv.index("--url") + 1]
+             args.version = sys.argv[sys.argv.index("--version") + 1]
+             if "--restart-args" in sys.argv:
+                 args.restart_args = sys.argv[sys.argv.index("--restart-args") + 1:]
+             else:
+                 args.restart_args = []
+        except:
+             sys.exit(1)
+
+    # Clean up restart args if they contain the flag itself (happens with REMAINDER)
+    if args.restart_args and args.restart_args[0] == "--restart-args":
+        args.restart_args = args.restart_args[1:]
+
     # Check target dir
     target_dir = os.path.dirname(os.path.abspath(args.target))
     if not os.path.isdir(target_dir):
