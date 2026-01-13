@@ -66,6 +66,7 @@ def build_executable(config):
     print("="*50)
     
     script_path = get_abs_path('proglite.py')
+    manifest_path = get_abs_path("uac_manifest.xml")
     
     # PyInstaller arguments for main application
     args_main = [
@@ -84,8 +85,10 @@ def build_executable(config):
         '--hidden-import=fitz',
         '--collect-all=fitz',
         '--collect-all=PIL',
-        f'--manifest={get_abs_path("uac_manifest.xml")}'
+        f'--manifest={manifest_path}' if os.path.exists(manifest_path) else ''
     ]
+    # Remove empty strings from args
+    args_main = [a for a in args_main if a]
     
     try:
         import PyInstaller.__main__
@@ -115,6 +118,7 @@ def build_updater():
     print("="*50)
     
     script_path = get_abs_path('itmq_updater.py')
+    manifest_path = get_abs_path("uac_manifest.xml")
     
     # PyInstaller arguments for updater (minimal dependencies)
     args_updater = [
@@ -127,8 +131,11 @@ def build_updater():
         '--distpath=dist',
         '--workpath=build',
         '--hidden-import=tkinter',
-        '--hidden-import=urllib.request'
+        '--hidden-import=urllib.request',
+        f'--manifest={manifest_path}' if os.path.exists(manifest_path) else ''
     ]
+    # Remove empty strings from args
+    args_updater = [a for a in args_updater if a]
     
     try:
         import PyInstaller.__main__

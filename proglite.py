@@ -1581,8 +1581,7 @@ class MainApp:
         
         self.btn_settings = tk.Button(root, text="⚙️", command=self.open_settings, bd=0, bg=COLORS["BG"], fg=COLORS["TEXT"], font=("Segoe UI", 14), cursor="hand2")
         self.btn_settings.pack(side="top", anchor="nw", padx=20, pady=20)
-
-        self.lbl_footer = tk.Label(root, text="Tomás Posada Castro - 2026 | v" + updater.APP_VERSION, font=("Segoe UI", 8), fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
+        self.lbl_footer = tk.Label(root, text="Tomás Posada Castro - 2026 | v" + updater.config.app_version, font=("Segoe UI", 8), fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
         self.lbl_footer.pack(side="bottom", pady=15)
         
         # Auto-check for updates on startup (silent)

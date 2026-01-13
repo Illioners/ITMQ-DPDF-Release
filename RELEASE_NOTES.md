@@ -1,3 +1,19 @@
+# Release v1.3.2
+
+## Información del Build
+
+- **Versión**: 1.3.2
+- **Fecha**: 2026-01-13
+
+## Novedades de Esta Versión
+
+- ✅ **Corrección Crítica**: Corregido error de variable de versión que impedía el inicio de la aplicación.
+- ✅ **Mejora del Updater**: Mayor robustez en el proceso de reemplazo de archivos y manejo de bloqueos en Windows.
+- ✅ **Permisos Elevados**: El Updater ahora solicita permisos de administrador (UAC) para asegurar el reemplazo de archivos en cualquier ubicación.
+- ✅ **Logs del Updater**: Implementado sistema de logs en `%LOCALAPPDATA%\ClasificadorPDF\Logs\itmq_updater.log`.
+
+---
+
 # Release v1.3.1
 
 ## Información del Build
