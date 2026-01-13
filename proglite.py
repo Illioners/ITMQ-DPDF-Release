@@ -13,14 +13,15 @@ from concurrent.futures import ThreadPoolExecutor
 import sys
 import updater
 
-# --- GLOBAL SETTINGS & PERSISTENCE ---
+
 # --- GLOBAL SETTINGS & PERSISTENCE ---
 # Use LOCALAPPDATA to avoid permission issues in Program Files or Network Drives
 APP_DATA_DIR = os.path.join(os.getenv('LOCALAPPDATA', os.path.expanduser('~')), "ClasificadorPDF")
 if not os.path.exists(APP_DATA_DIR):
     try:
         os.makedirs(APP_DATA_DIR)
-    except: pass
+    except OSError as e:
+        print(f"Error creating app data dir: {e}")
 
 SETTINGS_FILE = os.path.join(APP_DATA_DIR, "user_settings.json")
 DEFAULT_SETTINGS = {
@@ -33,14 +34,16 @@ def load_settings():
         try:
             with open(SETTINGS_FILE, "r") as f:
                 return {**DEFAULT_SETTINGS, **json.load(f)}
-        except: pass
+        except Exception as e:
+            print(f"Error loading settings: {e}")
     return DEFAULT_SETTINGS.copy()
 
 def save_settings(settings):
     try:
         with open(SETTINGS_FILE, "w") as f:
             json.dump(settings, f, indent=4)
-    except: pass
+    except OSError as e:
+        print(f"Error saving settings: {e}")
 
 UI_SETTINGS = load_settings()
 CURRENT_THEME = UI_SETTINGS["theme"]
@@ -89,7 +92,8 @@ try:
     import tkinter.font as tkfont
     if "Inter" not in tkfont.families():
         FONTS = {k: ("Segoe UI", v[1], v[2] if len(v)>2 else "normal") for k, v in FONTS.items()}
-except: pass
+except Exception as e:
+    print(f"Font loading fallback error: {e}")
 
 # --- PROFILES & CATEGORIES ---
 PROFILES = {
@@ -195,11 +199,11 @@ class PDFEngine:
 
     def get_text_clean(self, page_num):
         if page_num in self.ocr_cache: return self.ocr_cache[page_num]
-        
         try:
             page = self.doc.load_page(page_num)
             text = page.get_text()
-        except:
+        except Exception as e:
+            print(f"Text extraction error p{page_num}: {e}")
             text = ""
         
         clean = ''.join((c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')).lower()
@@ -379,9 +383,11 @@ class PageTile(tk.Frame):
         self.lbl_img.config(image="", text="⏳")
 
     def _apply_image(self, img_pil):
-        if not self.winfo_exists(): return
-        self.tk_img = ImageTk.PhotoImage(img_pil)
-        self.lbl_img.config(image=self.tk_img, text="")
+        def _update():
+            if not self.winfo_exists(): return
+            self.tk_img = ImageTk.PhotoImage(img_pil)
+            self.lbl_img.config(image=self.tk_img, text="")
+        self.after(0, _update)
 
     def _handle_click(self, e):
         self.on_click(self, shift=(e.state & 0x0001))
@@ -667,7 +673,36 @@ class EditorWindow(tk.Toplevel):
 
     def _ensure_tile_visible(self, tile):
         self.canvas.update_idletasks()
-        ty = tile.winfo_y()
+        try:
+            # Coordinates relative to the scrollable inner frame
+            y = tile.winfo_y()
+            h = tile.winfo_height()
+            
+            # Dimensions of the viewing area
+            viewport_height = self.canvas.winfo_height()
+            scroll_height = self.inner.winfo_height()
+            
+            if scroll_height <= viewport_height: return
+
+            # Current scroll position (0.0 to 1.0)
+            cur_top, cur_bottom = self.canvas.yview()
+            
+            # Convert boolean view bounds to pixels
+            view_top_px = cur_top * scroll_height
+            view_bottom_px = cur_bottom * scroll_height
+
+            # Check if tile is out of view
+            if y < view_top_px:
+                # Scroll up to show top of tile
+                new_pos = max(0, y / scroll_height)
+                self.canvas.yview_moveto(new_pos)
+            elif (y + h) > view_bottom_px:
+                # Scroll down to show bottom of tile
+                # Try to position it at the bottom, or just scroll enough to see it
+                new_pos = min(1, (y + h - viewport_height) / scroll_height)
+                self.canvas.yview_moveto(new_pos)
+        except Exception:
+            pass
 
     def select_all(self):
         self.history.append({k: list(v) for k, v in self.results.items()})
@@ -1471,7 +1506,8 @@ class EditorWindow(tk.Toplevel):
             
             history.insert(0, {"file": filename, "folder": folder, "cedula": self.cedula, "date": str(fitz.now())})
             with open(h_path, "w") as f: json.dump(history[:100], f)
-        except: pass
+        except Exception as e:
+            print(f"History log error: {e}")
 
     def finish_all(self):
         self.progress_win.destroy()
@@ -1582,7 +1618,7 @@ class MainApp:
         try:
             from datetime import datetime
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            temp_dir = os.path.join(os.path.expanduser("~"), "Documents", "Temp_PDF_Merged")
+            temp_dir = os.path.join(APP_DATA_DIR, "Temp_PDF_Merged")
             os.makedirs(temp_dir, exist_ok=True)
             
             merged_name = f"Merged_{timestamp}.pdf"
@@ -1658,7 +1694,8 @@ class SplashScreen(tk.Toplevel):
                 tk.Label(self, image=self.tk_img, bg=COLORS["SURFACE"]).pack(expand=True)
             else:
                 tk.Label(self, text="DIGITALIZADOR INTRAMAQ", font=FONTS["TITLE"], bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(expand=True)
-        except: pass
+        except Exception as e:
+            print(f"Splash screen error: {e}")
         
         self.start_animation()
 
@@ -1718,7 +1755,8 @@ def main():
             # Set App Icon
             icon_img = ImageTk.PhotoImage(file=logo_path)
             root.iconphoto(True, icon_img)
-        except: pass
+        except Exception as e:
+            print(f"Icon error: {e}")
 
         # time.sleep(0.5) # Removed to improve startup speed
         SplashScreen(root, launch_main)
@@ -1726,3 +1764,6 @@ def main():
         launch_main()
         
     root.mainloop()
+
+if __name__ == "__main__":
+    main()

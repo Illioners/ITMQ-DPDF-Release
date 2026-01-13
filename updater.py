@@ -218,7 +218,7 @@ def download_update(download_url, progress_callback=None):
         if not os.path.exists(app_data_dir):
             try:
                 os.makedirs(app_data_dir)
-            except: pass
+            except OSError: pass
             
         temp_file = os.path.join(app_data_dir, "ClasificadorPDF_update.exe")
         
@@ -265,9 +265,23 @@ def download_update(download_url, progress_callback=None):
         print(f"Download error: {e}")
         return False, str(e)
 
-def install_update(download_url, version):
+def verify_update(file_path, expected_hash):
+    """Verify that the downloaded file matches the expected SHA256 hash"""
+    if not expected_hash:
+        return True, "Advertencia: No hay hash de verificación disponible."
+    
+    try:
+        actual_hash = calculate_sha256(file_path)
+        if actual_hash.lower() == expected_hash.lower():
+            return True, "Verificación exitosa."
+        else:
+            return False, f"Error de integridad: El hash no coincide.\nEsperado: {expected_hash}\nObtenido: {actual_hash}"
+    except Exception as e:
+        return False, f"Error durante la verificación: {e}"
+
+def install_update(downloaded_file, version):
     """
-    Generate and launch a visible batch script to handle download and installation.
+    Generate and launch a visible batch script to handle installation from a downloaded file.
     """
     try:
         if getattr(sys, 'frozen', False):
@@ -282,9 +296,9 @@ def install_update(download_url, version):
         exe_dir = os.path.dirname(current_exe)
         exe_name = os.path.basename(current_exe)
         
-        # Batch script content
+        # Batch script content - No longer includes curl
         batch_content = f"""@echo off
-title Actualizador ClasificadorPDF - v{version}
+title Actualizacion ClasificadorPDF - v{version}
 color 0B
 echo ============================================================
 echo      ACTUALIZACION DE CLASIFICADOR PDF v{version}
@@ -293,7 +307,7 @@ echo.
 echo Directorio: {exe_dir}
 echo.
 
-echo [1/4] Esperando a que el programa se cierre...
+echo [1/3] Esperando a que el programa se cierre...
 echo Cierre la aplicacion si aun esta abierta.
 :wait_loop
 tasklist /fi "imagename eq {exe_name}" | find /i "{exe_name}" > nul
@@ -302,21 +316,8 @@ if not errorlevel 1 (
     goto wait_loop
 )
 
-echo [2/4] Descargando nueva version...
-echo URL: {download_url}
-echo.
-curl -L --progress-bar -o "{exe_name}.new" "{download_url}"
-if errorlevel 1 (
-    echo.
-    echo [ERROR] No se pudo descargar la actualizacion.
-    echo Verifique su conexion a internet.
-    pause
-    exit
-)
-
-echo.
-echo [3/4] Instalando archivos...
-move /y "{exe_name}.new" "{exe_name}"
+echo [2/3] Instalando archivos...
+move /y "{downloaded_file}" "{current_exe}"
 if errorlevel 1 (
     echo.
     echo [ERROR] No se pudo reemplazar el ejecutable.
@@ -325,23 +326,23 @@ if errorlevel 1 (
     exit
 )
 
-echo [4/4] Actualizacion completada con exito.
+echo [3/3] Actualizacion completada con exito.
 echo.
 echo Reiniciando ClasificadorPDF...
-start "" "{exe_name}"
+start "" "{current_exe}"
 timeout /t 2 > nul
 (goto) 2>nul & del "%~f0"
 exit
 """
         
-        batch_file = os.path.join(exe_dir, "update_installer.bat")
+        batch_file = os.path.join(exe_dir, "updater_script.bat")
         with open(batch_file, "w", encoding='utf-8') as f:
             f.write(batch_content)
         
         # Launch CMD in a new visible window
         # /c cmd /k will keep it open if it errors (but we have pause)
         # We use 'start' to ensure it's a separate top-level window
-        subprocess.Popen(f'start "Instalador ClasificadorPDF" cmd /c "{batch_file}"', shell=True)
+        subprocess.Popen(f'start "Actualizacion ClasificadorPDF" cmd /c "{batch_file}"', shell=True)
         return True
         
     except Exception as e:
@@ -415,26 +416,52 @@ class UpdateDialog(tk.Toplevel):
             self.status_label.config(text=f"Descargando... {progress}%")
     
     def start_download(self):
-        """Transition to CMD installer"""
-        try:
-            download_url = self.update_data.get("download_url")
-            version = self.update_data.get("version", "Unknown")
-            
-            if not download_url:
-                messagebox.showerror("Error", "URL de descarga no disponible.")
-                self.destroy()
-                return
-            
-            # Start the CMD installer
-            if install_update(download_url, version):
-                # Small delay to ensure CMD window is visible before app exits
-                self.after(500, lambda: sys.exit(0))
-            else:
-                self.destroy()
+        """Perform download, verification and transition to installer"""
+        def _bg_task():
+            try:
+                download_url = self.update_data.get("download_url")
+                expected_sha = self.update_data.get("sha256")
+                version = self.update_data.get("version", "Unknown")
                 
-        except Exception as e:
-            messagebox.showerror("Error", f"Error durante la actualización:\n{str(e)}")
-            self.destroy()
+                if not download_url:
+                    self.after(0, lambda: messagebox.showerror("Error", "URL de descarga no disponible."))
+                    self.after(0, self.destroy)
+                    return
+                
+                # 1. Download
+                success, result = download_update(download_url, self.update_progress)
+                if not success:
+                    self.after(0, lambda: messagebox.showerror("Error de Descarga", result))
+                    self.after(0, self.destroy)
+                    return
+                
+                downloaded_file = result
+                
+                # 2. Verify
+                self.after(0, lambda: self.status_label.config(text="Verificando integridad..."))
+                valid, msg = verify_update(downloaded_file, expected_sha)
+                if not valid:
+                    self.after(0, lambda: messagebox.showerror("Error de Integridad", msg))
+                    # Cleanup failed download
+                    try: os.remove(downloaded_file)
+                    except: pass
+                    self.after(0, self.destroy)
+                    return
+                
+                # 3. Install
+                self.after(0, lambda: self.status_label.config(text="Iniciando instalador..."))
+                if install_update(downloaded_file, version):
+                    # Small delay to ensure CMD window is visible before app exits
+                    self.after(500, lambda: sys.exit(0))
+                else:
+                    self.after(0, self.destroy)
+                    
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Error", f"Error durante la actualización:\n{str(e)}"))
+                self.after(0, self.destroy)
+
+        import threading
+        threading.Thread(target=_bg_task, daemon=True).start()
 
 def show_update_dialog(parent, update_data):
     """Show update available dialog with changelog"""

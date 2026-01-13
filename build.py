@@ -63,7 +63,9 @@ def build_executable(config):
         '--hidden-import=fitz',
         '--hidden-import=pytesseract',
         '--collect-all=fitz',
-        '--collect-all=PIL'
+        '--collect-all=fitz',
+        '--collect-all=PIL',
+        f'--manifest={get_abs_path("uac_manifest.xml")}'
     ]
     
     try:
@@ -73,14 +75,41 @@ def build_executable(config):
         exe_path = get_abs_path(os.path.join('dist', 'ClasificadorPDF.exe'))
         
         # FIRMA DIGITAL (Self-Signed)
+        # FIRMA DIGITAL (Self-Signed)
         pfx_path = get_abs_path("TC_CodeSigning.pfx")
         if os.path.exists(pfx_path) and os.path.exists(exe_path):
-            print("\n[SIGN] Firmando ejecutable...")
-            # Use PowerShell to sign avoiding external signtool dependency
-            ps_command = f'$cert = Get-PfxCertificate -FilePath "{pfx_path}" -Password (ConvertTo-SecureString -String "ClasificadorPDF2026" -Force -AsPlainText); Set-AuthenticodeSignature -FilePath "{exe_path}" -Certificate $cert'
-            subprocess.run(["powershell", "-Command", ps_command], capture_output=True)
-            print("[SIGN] Firma aplicada exitosamente.")
+            print(f"\n[SIGN] Firmando ejecutable con {os.path.basename(pfx_path)}...")
             
+            # PowerShell command to sign the executable
+            # using best practices for self-signed string conversion
+            ps_command = f'''
+            try {{
+                $pfxPath = "{pfx_path}"
+                $exePath = "{exe_path}"
+                $pass = ConvertTo-SecureString -String "ClasificadorPDF2026" -Force -AsPlainText
+                $cert = Get-PfxCertificate -FilePath $pfxPath -Password $pass
+                
+                if ($cert) {{
+                    Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert
+                    exit 0
+                }} else {{
+                    Write-Error "No se pudo cargar el certificado."
+                    exit 1
+                }}
+            }} catch {{
+                Write-Error $_.Exception.Message
+                exit 1
+            }}
+            '''
+            
+            result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-NonInteractive", "-Command", ps_command], capture_output=True, text=True)
+            
+            if result.returncode == 0 and "Valid" in result.stdout:
+                print("[SIGN] ÉXITO: Ejecutable firmado correctamente.")
+            else:
+                print(f"[SIGN] ADVERTENCIA: La firma podría no haber sido perfecta.\nSalida: {result.stdout}")
+                # We don't fail the build even if signing "fails" verification (common with self-signed untrusted on build machine)
+                
         return exe_path
     except Exception as e:
         print(f"[ERROR] Fallo en PyInstaller: {e}")

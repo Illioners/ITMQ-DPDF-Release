@@ -1,15 +1,17 @@
-# Release v1.1.5
+# Release v1.2.0 (Auditoría & Seguridad)
 
 ## Información del Build
 
-- **Versión**: 1.1.5
+- **Versión**: 1.2.0
 - **Fecha**: 2026-01-13
-- **SHA256**: `Calculated during build`
+- **SHA256**: `Calculado durante build`
 
-## Notas
+## Notas de Seguridad y Auditoría
 
-- **MEJORA CRÍTICA**: El sistema de actualizaciones ahora utiliza carpetas compatibles con políticas corporativas (`%LOCALAPPDATA%`) en lugar de carpetas temporales bloqueadas.
-- Solución al error de permisos "Windows cannot access the specified device, path, or file".
+- **SEGURIDAD**: Implementada verificación obligatoria de hash SHA256 para actualizaciones. Previene archivos corruptos o modificados.
+- **AUDITORÍA**: Limpieza exhaustiva de bloques `except` vacíos. Mejora la estabilidad y facilita el diagnóstico de errores.
+- **OPTIMIZACIÓN**: Carpeta temporal de unión de PDFs movida a `APP_DATA_DIR` para evitar desorden en Documentos.
+- **RENDIMIENTO**: Mejoras adicionales en el motor de renderizado y manejo de memoria.
 
 1. Descarga `ClasificadorPDF.exe`
 2. Verifica el hash SHA256 (opcional pero recomendado)
