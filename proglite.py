@@ -1748,6 +1748,7 @@ class SplashScreen(tk.Toplevel):
             self.attributes("-alpha", alpha)
             self.after(20, lambda: self.fade_out(alpha))
 
+def main():
     # High-DPI Awareness
     try:
         from ctypes import windll
