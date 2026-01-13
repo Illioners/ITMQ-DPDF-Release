@@ -135,7 +135,7 @@ class PDFEngine:
         self.doc = fitz.open(file_path)
         self.cache = {}
         self.cache_keys = []
-        self.MAX_CACHE = 80 # Leaner cache
+        self.MAX_CACHE = 20 # Optimized for low-end systems
         self.ocr_cache = {}
         self.rotations = {}
         self.id_regex = re.compile(r'\d{7,10}')
@@ -1619,8 +1619,8 @@ class MainApp:
             updater.show_update_dialog(self.root, data)
     
     def auto_check_updates(self):
-        """Auto-check for updates on startup (silent)."""
-        updater.auto_check_updates(self.root)
+        """Auto-check for updates on startup (silent) in background thread."""
+        threading.Thread(target=lambda: updater.auto_check_updates(self.root), daemon=True).start()
 
 
     def process_next(self):
@@ -1673,7 +1673,7 @@ class SplashScreen(tk.Toplevel):
             self.after(800, self.start_fade_out) # Hold 0.8s
         else:
             self.attributes("-alpha", alpha)
-            self.after(10, lambda: self.fade_in(alpha))
+            self.after(20, lambda: self.fade_in(alpha))
 
     def start_fade_out(self):
         self.fade_out(1.0)
@@ -1683,8 +1683,9 @@ class SplashScreen(tk.Toplevel):
         if alpha <= 0:
             self.destroy()
             self.on_complete()
-        self.attributes("-alpha", alpha)
-            self.after(10, lambda: self.fade_out(alpha))
+        else:
+            self.attributes("-alpha", alpha)
+            self.after(20, lambda: self.fade_out(alpha))
 
 def main():
     root = tk.Tk()
@@ -1719,7 +1720,7 @@ def main():
             root.iconphoto(True, icon_img)
         except: pass
 
-        time.sleep(0.5) # Slight delay as requested
+        # time.sleep(0.5) # Removed to improve startup speed
         SplashScreen(root, launch_main)
     else:
         launch_main()
