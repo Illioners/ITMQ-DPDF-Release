@@ -91,25 +91,39 @@ try:
         FONTS = {k: ("Segoe UI", v[1], v[2] if len(v)>2 else "normal") for k, v in FONTS.items()}
 except: pass
 
-CATEGORIES = [
-    ("CC", "Cédula"), ("RQ", "Requisición"), ("HVI", "Hoja de vida interna"), 
-    ("CTO", "Contrato laboral"), ("PRE", "Preaviso (Fijo)"), ("EXS", "Otro si (EXS)"),
-    ("ARL", "ARL"), ("FEPS", "Formulario EPS"), ("EPS", "EPS"), ("AFP", "AFP"),
-    ("FCCF", "Formulario CCF"), ("CCF", "CCF"), ("ADRES", "ADRES"), ("RUAF", "RUAF"),
-    ("RC", "Registro Civil"), ("DOCB", "Docs Beneficiarios"), ("NOIB", "No inclusión"),
-    ("HVE", "Hoja de vida externa"), ("EI", "Entrevista"), ("PSI", "Psicotécnicas"),
-    ("PC", "Perfil de cargo"), ("AUT", "Autorización datos"), ("ANT", "Antecedentes"), 
-    ("CV", "Carnet vacunas"), ("RT", "Registro retefuente"), ("CB", "C. Bancario"), ("LC", "Licencia"),
-    ("CL", "C. Laborales"), ("CE", "C. Estudios"), ("GEO", "GeoVictoria"), ("PO", "Póliza"),
-    ("APL", "Aceptación laboral")
-]
-
-SEGMENTS = {
-    "A. Contrato y afiliaciones": ["CC", "RQ", "HVI", "CTO", "PRE", "EXS", "ARL", "FEPS", "EPS", "AFP", "FCCF", "CCF", "ADRES", "RUAF", "RC", "DOCB", "NOIB"],
-    "B. Documentos de ingreso": ["HVE", "EI", "PSI", "PC", "AUT", "ANT", "CV", "RT", "CB", "LC"],
-    "C. Certificaciones": ["CL", "CE"],
-    "D. Comunicaciones": ["GEO", "PO", "APL"]
+# --- PROFILES & CATEGORIES ---
+PROFILES = {
+    "Gestion Humana": {
+        "CATEGORIES": [
+            ("CC", "Cédula"), ("RQ", "Requisición"), ("HVI", "Hoja de vida interna"), 
+            ("CTO", "Contrato laboral"), ("PRE", "Preaviso (Fijo)"), ("EXS", "Otro si (EXS)"),
+            ("ARL", "ARL"), ("FEPS", "Formulario EPS"), ("EPS", "EPS"), ("AFP", "AFP"),
+            ("FCCF", "Formulario CCF"), ("CCF", "CCF"), ("ADRES", "ADRES"), ("RUAF", "RUAF"),
+            ("RC", "Registro Civil"), ("DOCB", "Docs Beneficiarios"), ("NOIB", "No inclusión"),
+            ("HVE", "Hoja de vida externa"), ("EI", "Entrevista"), ("PSI", "Psicotécnicas"),
+            ("PC", "Perfil de cargo"), ("AUT", "Autorización datos"), ("ANT", "Antecedentes"), 
+            ("CV", "Carnet vacunas"), ("RT", "Registro retefuente"), ("CB", "C. Bancario"), ("LC", "Licencia"),
+            ("CL", "C. Laborales"), ("CE", "C. Estudios"), ("GEO", "GeoVictoria"), ("PO", "Póliza"),
+            ("APL", "Aceptación laboral")
+        ],
+        "SEGMENTS": {
+            "A. Contrato y afiliaciones": ["CC", "RQ", "HVI", "CTO", "PRE", "EXS", "ARL", "FEPS", "EPS", "AFP", "FCCF", "CCF", "ADRES", "RUAF", "RC", "DOCB", "NOIB"],
+            "B. Documentos de ingreso": ["HVE", "EI", "PSI", "PC", "AUT", "ANT", "CV", "RT", "CB", "LC"],
+            "C. Certificaciones": ["CL", "CE"],
+            "D. Comunicaciones": ["GEO", "PO", "APL"]
+        }
+    },
+    "Simplificado": {
+        "CATEGORIES": [
+            ("CC", "Cédula"), ("CTO", "Contrato"), ("HVI", "Hoja de Vida"), ("EXT", "Otros")
+        ],
+        "SEGMENTS": {
+            "Principales": ["CC", "CTO", "HVI"],
+            "Anexos": ["EXT"]
+        }
+    }
 }
+DEFAULT_PROFILE = "Gestion Humana"
 
 # --- PDF ENGINE ---
 class PDFEngine:
@@ -568,15 +582,20 @@ class ManualInputWindow(tk.Toplevel):
         self.destroy()
 
 class EditorWindow(tk.Toplevel):
-    def __init__(self, parent, file_path, on_finish):
+    def __init__(self, parent, file_path, on_finish, profile_name=DEFAULT_PROFILE):
         super().__init__(parent)
-        self.title(f"Clasificador Pro: {os.path.basename(file_path)}")
+        self.profile_name = profile_name
+        self.profile_data = PROFILES.get(profile_name, PROFILES[DEFAULT_PROFILE])
+        self.categories = self.profile_data["CATEGORIES"]
+        self.segments = self.profile_data["SEGMENTS"]
+        
+        self.title(f"Clasificador Pro: {os.path.basename(file_path)} [{profile_name}]")
         self.state('zoomed')
         self.configure(bg=COLORS["BG"])
         self.engine = PDFEngine(file_path)
         self.on_finish = on_finish
         
-        self.current_idx = 0 # 0-indexed across CATEGORIES
+        self.current_idx = 0 # 0-indexed across self.categories
         self.results = {} # abbr: [pages]
         self.tiles = []
         self.last_clicked_idx = None
@@ -606,6 +625,7 @@ class EditorWindow(tk.Toplevel):
         self.bind("<Control-t>", lambda e: self.toggle_theme())
         self.bind("<Control-a>", lambda e: self.select_all())
         self.bind("<Return>", lambda e: self.next_step())
+        self.bind("<Control-p>", lambda e: self.toggle_preview())
 
     def _on_key_right(self, e):
         # If in grid, move selection, otherwise ignored or custom
@@ -651,7 +671,7 @@ class EditorWindow(tk.Toplevel):
     def select_all(self):
         self.history.append({k: list(v) for k, v in self.results.items()})
         visible = [t for t in self.tiles if not self.is_assigned(t.page_num)]
-        curr_abbr = CATEGORIES[self.current_idx][0]
+        curr_abbr = self.categories[self.current_idx][0]
         
         for t in visible:
             if not t.selected:
@@ -684,7 +704,7 @@ class EditorWindow(tk.Toplevel):
         self.history.append({k: list(v) for k, v in self.results.items()})
         if len(self.history) > 20: self.history.pop(0)
         
-        curr_abbr = "CC" if self.current_idx == -1 else CATEGORIES[self.current_idx][0]
+        curr_abbr = "CC" if self.current_idx == -1 else self.categories[self.current_idx][0]
         visible_tiles = [t for t in self.tiles if not self.is_assigned(t.page_num)]
         
         try:
@@ -1020,7 +1040,7 @@ class EditorWindow(tk.Toplevel):
         self.canvas.config(scrollregion=(0, 0, w, estimated_height))
 
     def is_assigned(self, page_num):
-        curr_abbr = CATEGORIES[self.current_idx][0]
+        curr_abbr = self.categories[self.current_idx][0]
         # Special case for CTO/CTOF which share the same step view
         active_abbrs = {curr_abbr}
         if curr_abbr == "CTO": active_abbrs.add("CTOF")
@@ -1073,8 +1093,8 @@ class EditorWindow(tk.Toplevel):
         win.bind("<Destroy>", lambda e: _on_destroy())
 
     def update_step_ui(self):
-        abbr, name = CATEGORIES[self.current_idx]
-        segment_name = next((s for s, items in SEGMENTS.items() if abbr in items), "Proceso")
+        abbr, name = self.categories[self.current_idx]
+        segment_name = next((s for s, items in self.segments.items() if abbr in items), "Proceso")
         
         self.lbl_step.config(text=f"{segment_name} | {abbr}: {name.upper()}")
         
@@ -1087,11 +1107,11 @@ class EditorWindow(tk.Toplevel):
 
     def update_sidebar(self):
         # 1. IDENTIFY CURRENT SEGMENT
-        curr_abbr = CATEGORIES[self.current_idx][0]
+        curr_abbr = self.categories[self.current_idx][0]
         current_seg_name = None
         current_seg_abbrs = []
         
-        for seg, abbrs in SEGMENTS.items():
+        for seg, abbrs in self.segments.items():
             if curr_abbr in abbrs:
                 current_seg_name = seg
                 current_seg_abbrs = abbrs
@@ -1110,7 +1130,7 @@ class EditorWindow(tk.Toplevel):
         prog_frame.pack(fill="x")
         
         # Extract letters (A, B, C...) from keys
-        seg_keys = list(SEGMENTS.keys())
+        seg_keys = list(self.segments.keys())
         
         for i, seg_key in enumerate(seg_keys):
             letter = seg_key.split(".")[0].strip() # "A" from "A. Contrato..."
@@ -1125,9 +1145,9 @@ class EditorWindow(tk.Toplevel):
             
             # Bind click to jump to start of that segment
             # We need to find the index of the first category in that segment
-            target_abbr = SEGMENTS[seg_key][0]
+            target_abbr = self.segments[seg_key][0]
             target_idx = -1
-            for k, cat in enumerate(CATEGORIES):
+            for k, cat in enumerate(self.categories):
                 if cat[0] == target_abbr:
                     target_idx = k
                     break
@@ -1140,12 +1160,12 @@ class EditorWindow(tk.Toplevel):
         # 4. RENDER CATEGORIES FOR CURRENT SEGMENT ONLY
         # Filter CATEGORIES to only those in current_seg_abbrs
         
-        for abbr, name in CATEGORIES:
+        for abbr, name in self.categories:
             if abbr not in current_seg_abbrs: continue
 
             # Find global index
             idx = -1
-            for i, v in enumerate(CATEGORIES):
+            for i, v in enumerate(self.categories):
                 if v[0] == abbr:
                     idx = i
                     break
@@ -1302,22 +1322,23 @@ class EditorWindow(tk.Toplevel):
         self.last_clicked_idx = None
         self.current_idx += 1
         
-        if self.current_idx >= len(CATEGORIES):
-            # Final Form Verification check
-            has_eps = "EPS" in self.results
-            has_feps = "FEPS" in self.results
-            has_ccf = "CCF" in self.results
-            has_fccf = "FCCF" in self.results
-            
-            warns = []
-            if has_eps and not has_feps: warns.append("No se asignó Formulario EPS (FEPS).")
-            if has_ccf and not has_fccf: warns.append("No se asignó Formulario CCF (FCCF).")
-            
-            if warns:
-                msg = "\n".join(warns) + "\n\n¿Desea continuar y guardar de todos modos?"
-                if not messagebox.askyesno("Verificación de Formularios", msg):
-                    self.current_idx -= 1
-                    return
+        if self.current_idx >= len(self.categories):
+            # Final Form Verification check - Only for Gestion Humana
+            if self.profile_name == "Gestion Humana":
+                has_eps = "EPS" in self.results
+                has_feps = "FEPS" in self.results
+                has_ccf = "CCF" in self.results
+                has_fccf = "FCCF" in self.results
+                
+                warns = []
+                if has_eps and not has_feps: warns.append("No se asignó Formulario EPS (FEPS).")
+                if has_ccf and not has_fccf: warns.append("No se asignó Formulario CCF (FCCF).")
+                
+                if warns:
+                    msg = "\n".join(warns) + "\n\n¿Desea continuar y guardar de todos modos?"
+                    if not messagebox.askyesno("Verificación de Formularios", msg):
+                        self.current_idx -= 1
+                        return
 
             self.save() # Direct save after last step
         else:
@@ -1400,7 +1421,7 @@ class EditorWindow(tk.Toplevel):
         
         missing = []
         if "CC" not in self.results: missing.append("CÉDULA (CC)")
-        for abbr, name in CATEGORIES:
+        for abbr, name in self.categories:
             if abbr not in self.results:
                 missing.append(f"{name} ({abbr})")
         
@@ -1449,9 +1470,10 @@ class MainApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Intramaq PDF Class")
-        self.root.geometry("700x550")
+        self.root.geometry("700x600")
         self.root.configure(bg=COLORS["BG"])
         self.queue = []
+        self.selected_profile = tk.StringVar(value=DEFAULT_PROFILE)
         
         self.container = tk.Frame(root, bg=COLORS["BG"])
         self.container.place(relx=0.5, rely=0.5, anchor="center")
@@ -1470,6 +1492,12 @@ class MainApp:
         
         self.btn_load = RoundedButton(self.container, "Iniciar Proceso", command=self.select_files, width=300)
         self.btn_load.pack()
+        
+        # Profile Selector
+        tk.Label(self.container, text="Perfil de clasificación:", font=("Inter", 9), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack(pady=(20, 5))
+        
+        self.profile_menu = ttk.Combobox(self.container, textvariable=self.selected_profile, values=list(PROFILES.keys()), state="readonly", font=("Inter", 10), width=30)
+        self.profile_menu.pack(pady=5)
         
         # Update button
         self.btn_update = tk.Button(self.container, text="🔄 Buscar Actualizaciones", command=self.check_updates, 
@@ -1585,7 +1613,7 @@ class MainApp:
     def process_next(self):
         if self.queue:
             path = self.queue.pop(0)
-            EditorWindow(self.root, path, self.process_next)
+            EditorWindow(self.root, path, self.process_next, profile_name=self.selected_profile.get())
         else:
             messagebox.showinfo("Éxito", "Todos los archivos han sido procesados.")
 
