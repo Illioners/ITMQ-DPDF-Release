@@ -1,31 +1,27 @@
-# Release v1.3.0
+# Release v1.3.1
 
 ## Información del Build
 
-- **Versión**: 1.3.0
+- **Versión**: 1.3.1
 - **Fecha**: 2026-01-13
-- **SHA256**: `Calculado durante build`
+- **SHA256**: `0747d514d1bae47592194ad3fbb89d9432a4358d461b848e75103b39c7a696b0`
 
 ## Novedades de Esta Versión
 
-Esta versión incluye mejoras significativas en la calidad del código, optimización del sistema de actualizaciones y correcciones importantes.
+Esta versión se enfoca en la limpieza del proyecto, la eliminación de la firma digital y la optimización del proceso de compilación.
 
 ### Mejoras Principales
 
-- ✅ Sistema de actualizaciones optimizado con mejor manejo de errores
-- ✅ Logging estructurado para diagnóstico de problemas
-- ✅ Validación de URLs de descarga mejorada
-- ✅ Reintentos automáticos con backoff exponencial
-- ✅ Límite de tamaño de descarga para seguridad
-- ✅ Mensajes de error más claros y amigables
-- ✅ Corrección de errores al cerrar la aplicación después de actualizar
-- ✅ Notificación de éxito tras instalación exitosa
+- ✅ **Eliminación de Firma Digital**: Se ha removido la dependencia de certificados PFX para simplificar la distribución.
+- ✅ **Optimización de Build**: Script de compilación `build.py` completamente rediseñado y más robusto.
+- ✅ **Limpieza de Proyecto**: Eliminación de archivos temporales, certificados obsoletos y scripts de prueba innecesarios.
+- ✅ **Mejora de Consola**: Soporte mejorado para la consola de Windows en los scripts de utilidad.
 
-### Correcciones de Errores
+### Cambios Internos
 
-- Eliminado error de Python al actualizar
-- Mejorado el cierre de proceso optimizado
-- Corregidos problemas de permisos en directorios de aplicación
+- Refactorización de `build.py` para mejor manejo de errores.
+- Actualización de `.gitignore` para mayor seguridad.
+- Mejora en el cálculo automático de SHA256.
 
 ## Instalación
 

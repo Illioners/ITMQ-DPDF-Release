@@ -33,3 +33,7 @@ wheels/
 # Local settings
 user_settings.json
 nuitka-crash-report.xml
+
+# Code signing (removed feature)
+*.pfx
+create_cert.ps1
