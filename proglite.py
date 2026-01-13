@@ -1683,11 +1683,10 @@ class SplashScreen(tk.Toplevel):
         if alpha <= 0:
             self.destroy()
             self.on_complete()
-        else:
-            self.attributes("-alpha", alpha)
+        self.attributes("-alpha", alpha)
             self.after(10, lambda: self.fade_out(alpha))
 
-if __name__ == "__main__":
+def main():
     root = tk.Tk()
     root.withdraw() # Hide main window initially
     
