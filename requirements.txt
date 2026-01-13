@@ -1,0 +1,5 @@
+nuitka
+zstandard
+pillow
+pymupdf
+pytesseract
