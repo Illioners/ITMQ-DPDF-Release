@@ -50,7 +50,6 @@ jobs:
         files: |
           dist/ClasificadorPDF.exe
           dist/ITMQ-Updater.exe
-          dist/ITMQ-Signer.exe
           version.json
         draft: false
         prerelease: false

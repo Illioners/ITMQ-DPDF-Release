@@ -159,46 +159,6 @@ def build_updater():
         print(f"[ERROR] Fallo en la compilación del updater: {e}")
         return None
 
-def build_signer():
-    """Build the standalone signer executable using PyInstaller."""
-    print("\n" + "="*50)
-    print("[BUILD] Compilando ITMQ-Signer.exe...")
-    print("="*50)
-    
-    script_path = get_abs_path('itmq_signer.py')
-    manifest_path = get_abs_path("uac_manifest.xml")
-    
-    args_signer = [
-        script_path,
-        '--name=ITMQ-Signer',
-        '--onefile',
-        '--windowed',
-        '--clean',
-        '--noconfirm',
-        '--distpath=dist',
-        '--workpath=build',
-        '--hidden-import=tkinter',
-        f'--manifest={manifest_path}' if os.path.exists(manifest_path) else ''
-    ]
-    args_signer = [a for a in args_signer if a]
-    
-    try:
-        import PyInstaller.__main__
-        PyInstaller.__main__.run(args_signer)
-        
-        exe_path = get_abs_path(os.path.join('dist', 'ITMQ-Signer.exe'))
-        
-        if os.path.exists(exe_path):
-            size_mb = os.path.getsize(exe_path) / (1024 * 1024)
-            print(f"[OK] ITMQ-Signer.exe generado ({size_mb:.2f} MB)")
-            return exe_path
-        else:
-            print("[ERROR] El signer no se generó correctamente")
-            return None
-            
-    except Exception as e:
-        print(f"[ERROR] Fallo en la compilación del signer: {e}")
-        return None
 
 def main():
     """Main build process."""
@@ -225,10 +185,6 @@ def main():
     if not updater_path:
         print("\n[WARNING] El updater no se compiló, pero la app principal está lista")
     
-    # Build signer tool
-    signer_path = build_signer()
-    if not signer_path:
-        print("\n[WARNING] El ITMQ-Signer no se compiló")
     
     # Calculate and update SHA256
     print("\n" + "="*50)
@@ -253,8 +209,6 @@ def main():
     print(f"Aplicacion: {exe_path}")
     if updater_path:
         print(f"Updater: {updater_path}")
-    if signer_path:
-        print(f"Signer: {signer_path}")
     print(f"SHA256: {sha256}")
     print(f"Fecha: {version_data['release_date']}")
     print("\nLos ejecutables estan listos en la carpeta 'dist/'")
