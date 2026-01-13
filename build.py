@@ -42,12 +42,46 @@ def calculate_sha256(file_path):
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
 
+def sign_executable(exe_path):
+    pfx_path = get_abs_path("TC_CodeSigning.pfx")
+    if os.path.exists(pfx_path) and os.path.exists(exe_path):
+        print(f"\n[SIGN] Firmando {os.path.basename(exe_path)}...")
+        
+        ps_command = f'''
+        try {{
+            $pfxPath = "{pfx_path}"
+            $exePath = "{exe_path}"
+            $pass = ConvertTo-SecureString -String "ClasificadorPDF2026" -Force -AsPlainText
+            $cert = Get-PfxCertificate -FilePath $pfxPath -Password $pass
+            
+            if ($cert) {{
+                Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert
+                exit 0
+            }} else {{
+                Write-Error "No se pudo cargar el certificado."
+                exit 1
+            }}
+        }} catch {{
+            Write-Error $_.Exception.Message
+            exit 1
+        }}
+        '''
+        
+        result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-NonInteractive", "-Command", ps_command], capture_output=True, text=True)
+        
+        if result.returncode == 0 and "Valid" in result.stdout:
+            print(f"[SIGN] ÉXITO: {os.path.basename(exe_path)} firmado correctamente.")
+            return True
+        else:
+            print(f"[SIGN] ADVERTENCIA: La firma podría no haber sido perfecta.\nSalida: {result.stdout}")
+    return False
+
 def build_executable(config):
-    print("\n[BUILD] Compilando aplicación con PyInstaller...")
+    print("\n[BUILD] Compilando aplicación PRINCIPAL con PyInstaller...")
     script_path = get_abs_path('proglite.py')
     
-    # Argumentos para PyInstaller
-    args = [
+    # Argumentos para PyInstaller - APP PRINCIPAL
+    args_main = [
         script_path,
         '--name=ClasificadorPDF',
         '--onefile',
@@ -68,49 +102,42 @@ def build_executable(config):
     
     try:
         import PyInstaller.__main__
-        PyInstaller.__main__.run(args)
-        
+        PyInstaller.__main__.run(args_main)
         exe_path = get_abs_path(os.path.join('dist', 'ClasificadorPDF.exe'))
-        
-        # FIRMA DIGITAL (Self-Signed)
-        # FIRMA DIGITAL (Self-Signed)
-        pfx_path = get_abs_path("TC_CodeSigning.pfx")
-        if os.path.exists(pfx_path) and os.path.exists(exe_path):
-            print(f"\n[SIGN] Firmando ejecutable con {os.path.basename(pfx_path)}...")
-            
-            # PowerShell command to sign the executable
-            # using best practices for self-signed string conversion
-            ps_command = f'''
-            try {{
-                $pfxPath = "{pfx_path}"
-                $exePath = "{exe_path}"
-                $pass = ConvertTo-SecureString -String "ClasificadorPDF2026" -Force -AsPlainText
-                $cert = Get-PfxCertificate -FilePath $pfxPath -Password $pass
-                
-                if ($cert) {{
-                    Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert
-                    exit 0
-                }} else {{
-                    Write-Error "No se pudo cargar el certificado."
-                    exit 1
-                }}
-            }} catch {{
-                Write-Error $_.Exception.Message
-                exit 1
-            }}
-            '''
-            
-            result = subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-NonInteractive", "-Command", ps_command], capture_output=True, text=True)
-            
-            if result.returncode == 0 and "Valid" in result.stdout:
-                print("[SIGN] ÉXITO: Ejecutable firmado correctamente.")
-            else:
-                print(f"[SIGN] ADVERTENCIA: La firma podría no haber sido perfecta.\nSalida: {result.stdout}")
-                # We don't fail the build even if signing "fails" verification (common with self-signed untrusted on build machine)
-                
+        sign_executable(exe_path)
         return exe_path
     except Exception as e:
-        print(f"[ERROR] Fallo en PyInstaller: {e}")
+        print(f"[ERROR] Fallo en PyInstaller (Main): {e}")
+        return None
+
+def build_updater():
+    print("\n[BUILD] Compilando ITMQ-Updater con PyInstaller...")
+    script_path = get_abs_path('itmq_updater.py')
+    
+    # Argumentos para PyInstaller - UPDATER
+    # Notar: El updater no necesita tantos recursos como la app principal
+    args_updater = [
+        script_path,
+        '--name=ITMQ-Updater',
+        '--onefile',
+        '--windowed',
+        '--clean',
+        '--noconfirm',
+        '--distpath=dist',
+        '--workpath=build',
+        # Minimal imports usually needed for tkinter + url access
+        '--hidden-import=tkinter',
+        '--hidden-import=urllib.request' 
+    ]
+    
+    try:
+        import PyInstaller.__main__
+        PyInstaller.__main__.run(args_updater)
+        exe_path = get_abs_path(os.path.join('dist', 'ITMQ-Updater.exe'))
+        sign_executable(exe_path)
+        return exe_path
+    except Exception as e:
+        print(f"[ERROR] Fallo en PyInstaller (Updater): {e}")
         return None
 
 def main():
@@ -118,7 +145,12 @@ def main():
     print(f"Preparando build v{config['version']}")
     
     version_data = update_version_file(config)
+    
+    # Build Main App
     exe_path = build_executable(config)
+    
+    # Build Updater
+    updater_path = build_updater()
     
     if exe_path and os.path.exists(exe_path):
         sha256 = calculate_sha256(exe_path)
@@ -128,8 +160,12 @@ def main():
         
         print("\n" + "="*40)
         print(f"BUILD COMPLETADO: v{config['version']}")
-        print(f"SHA256: {sha256}")
-        print(f"Archivo: {exe_path}")
+        print(f"SHA256 (App): {sha256}")
+        print(f"Archivo App: {exe_path}")
+        if updater_path and os.path.exists(updater_path):
+             print(f"Archivo Updater: {updater_path}")
+        else:
+             print("ADVERTENCIA: ITMQ-Updater no se generó correctamente.")
         print("="*40)
     else:
         print("[ERROR] No se encontró el ejecutable generado.")

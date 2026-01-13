@@ -1,8 +1,8 @@
 {
-  "version": "1.2.1",
+  "version": "1.3.0",
   "release_date": "2026-01-13",
-  "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.2.1/ClasificadorPDF.exe",
-  "sha256": "7a89e01f62c7ae8f7a14db763d05841115863246bfaec486430d6cb34b009bdd",
+  "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.3.0/ClasificadorPDF.exe",
+  "sha256": "a7b93ffc682f2cdbb276c0f5532d6207a0cfd22d0795ddfbb575922fea5610d7",
   "changelog": "- Eliminado error de Python al actualizar\n- Agregada notificación de éxito tras la instalación\n- Cierre de proceso optimizado",
   "min_version": "1.0.0"
 }

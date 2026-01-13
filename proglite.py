@@ -405,12 +405,37 @@ class PageTile(tk.Frame):
             self.config(highlightbackground=COLORS["BORDER"])
 
     def refresh_theme(self):
-        self.config(bg=COLORS["SURFACE"], highlightbackground=COLORS["BLUE"] if self.selected else COLORS["BORDER"])
-        self.img_container.config(bg=COLORS["SURFACE"])
-        self.lbl_img.config(bg=COLORS["SURFACE"])
-        self.bottom_bar.config(bg=COLORS["ACCENT"])
-        self.lbl_status.config(bg=COLORS["ACCENT"], fg="white" if self.selected else COLORS["TEXT_SECONDARY"])
-        self.btn_rot.config(bg=COLORS["ACCENT"])
+        # Preserve selection state and assigned color
+        if self.selected:
+            # Try to find what category color this tile has by checking its current background
+            # If it has a custom color from category assignment, preserve it
+            current_bg = str(self.cget("bg"))
+            # Check if it's a category color (BLUE or another color) vs default
+            if current_bg != COLORS["SURFACE"]:
+                # Preserve the assigned category color
+                fill_color = current_bg
+                self.config(bg=fill_color, highlightbackground=fill_color)
+                self.img_container.config(bg=fill_color)
+                self.lbl_img.config(bg=fill_color)
+                self.bottom_bar.config(bg=fill_color)
+                self.lbl_status.config(bg=fill_color, fg="white")
+                self.btn_rot.config(bg=fill_color, fg="white")
+            else:
+                # Use BLUE for generic selection
+                self.config(bg=COLORS["BLUE"], highlightbackground=COLORS["BLUE"])
+                self.img_container.config(bg=COLORS["BLUE"])
+                self.lbl_img.config(bg=COLORS["BLUE"])
+                self.bottom_bar.config(bg=COLORS["BLUE"])
+                self.lbl_status.config(bg=COLORS["BLUE"], fg="white")
+                self.btn_rot.config(bg=COLORS["BLUE"], fg="white")
+        else:
+            # Not selected - use default theme colors
+            self.config(bg=COLORS["SURFACE"], highlightbackground=COLORS["BORDER"])
+            self.img_container.config(bg=COLORS["SURFACE"])
+            self.lbl_img.config(bg=COLORS["SURFACE"])
+            self.bottom_bar.config(bg=COLORS["ACCENT"])
+            self.lbl_status.config(bg=COLORS["ACCENT"], fg=COLORS["TEXT_SECONDARY"])
+            self.btn_rot.config(bg=COLORS["ACCENT"], fg=COLORS["BLUE"])
 
     def set_focus(self, focused):
         """Sets a secondary highlight for keyboard focus."""
@@ -470,7 +495,7 @@ class SettingsWindow(tk.Toplevel):
         footer = tk.Frame(container, bg=COLORS["BG"])
         footer.pack(side="bottom", fill="x", pady=20)
         
-        tk.Label(footer, text=f"Versión {updater.APP_VERSION}", font=("Inter", 8), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack()
+        tk.Label(footer, text=f"Versión {updater.config.app_version}", font=("Inter", 8), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack()
         RoundedButton(footer, "REINSTALAR APLICACIÓN", command=self.reinstall_app, color=COLORS["ACCENT"], fg_color=COLORS["BLUE"], width=200).pack(pady=5)
         RoundedButton(footer, "CERRAR", command=self.destroy, width=200).pack(pady=10)
 
@@ -1741,7 +1766,10 @@ def main():
         root.deiconify()
         # Show success message if updated
         if "--updated" in sys.argv:
-            messagebox.showinfo("Actualización Exitosa", "¡La aplicación se ha actualizado correctamente a la versión " + updater.APP_VERSION + "!")
+            messagebox.showinfo(
+                "Actualización Exitosa", 
+                f"¡La aplicación se ha actualizado correctamente a la versión {updater.config.app_version}!"
+            )
         MainApp(root)
     
     def resource_path(relative_path):
