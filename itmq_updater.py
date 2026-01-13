@@ -138,8 +138,14 @@ class UpdaterUI(tk.Tk):
             # 1. Wait for application to close
             self.update_status("Esperando cierre de la aplicación...")
             if not self.wait_for_app_close():
-                 logger.error("Application failed to close or is locked")
-                 raise Exception("La aplicación sigue abierta o el archivo está bloqueado.")
+                 # Si tras esperar no cierra, intentamos forzar el cierre
+                 self.update_status("Forzando cierre de la aplicación...")
+                 self.force_kill_app()
+                 # Dar un momento tras el kill
+                 time.sleep(2)
+                 if not self.wait_for_app_close():
+                    logger.error("Application failed to close even after force kill")
+                    raise Exception("No se pudo cerrar la aplicación. Por favor, ciérrela manualmente.")
 
             # 2. Download new version
             self.update_status("Descargando actualización...")
@@ -155,7 +161,7 @@ class UpdaterUI(tk.Tk):
             # 4. Success & Launch
             self.update_status("¡Actualización completada!")
             self.progress_var.set(100)
-            time.sleep(1)
+            time.sleep(1.5)
             self.launch_app()
             
             logger.info("Process finished successfully.")
@@ -166,15 +172,28 @@ class UpdaterUI(tk.Tk):
             messagebox.showerror("Error de Actualización", f"Ocurrió un error:\n{str(e)}")
             self.quit()
 
+    def force_kill_app(self):
+        """Attempts to kill the process by its filename"""
+        try:
+            filename = os.path.basename(self.target_path)
+            logger.info(f"Attempting to force kill: {filename}")
+            # Use taskkill on Windows
+            subprocess.run(["taskkill", "/F", "/IM", filename, "/T"], capture_output=True)
+        except Exception as e:
+            logger.warning(f"Failed to force kill {filename}: {e}")
+
     def wait_for_app_close(self):
-        # Give it a moment to close nicely
-        time.sleep(2)
+        # Give it a moment to close nicely if it's just starting
+        time.sleep(1)
         
-        retries = 15 # 15 seconds max
+        retries = 10 # 10 seconds wait
         while retries > 0:
             try:
-                # Check if we can rename it. If we can rename it, it's NOT in use.
-                # Renaming is more reliable than Opening for writing on Windows.
+                # Si el archivo no existe (raro), consideramos que está "cerrado"
+                if not os.path.exists(self.target_path):
+                    return True
+                    
+                # Intentamos renombrar para verificar bloqueo
                 test_name = self.target_path + ".test"
                 if os.path.exists(test_name):
                     os.remove(test_name)
