@@ -19,6 +19,8 @@ import logging
 from logging.handlers import RotatingFileHandler
 from urllib.parse import urlparse
 from datetime import datetime
+import zipfile
+import shutil
 
 # ============================================================================
 # CONFIGURATION
@@ -250,14 +252,19 @@ def get_version_info():
                     logger.warning(f"Could not load version.json asset: {e}")
                 break
 
-        # Find download URL for ClasificadorPDF.exe AND ITMQ-Updater.exe
+        # Find download URL for ClasificadorPDF.zip AND ITMQ-Updater.zip
         download_url = ""
         updater_url = ""
         for asset in release_data.get("assets", []):
             name = asset.get("name")
-            if name == "ClasificadorPDF.exe":
+            if name == "ClasificadorPDF.zip":
                 download_url = asset.get("browser_download_url")
-            elif name == "ITMQ-Updater.exe":
+            elif name == "ITMQ-Updater.zip":
+                updater_url = asset.get("browser_download_url")
+            # Legacy support for .exe if .zip not found (optional)
+            elif not download_url and name == "ClasificadorPDF.exe":
+                download_url = asset.get("browser_download_url")
+            elif not updater_url and name == "ITMQ-Updater.exe":
                 updater_url = asset.get("browser_download_url")
         
         # Determine version and SHA256
@@ -400,14 +407,21 @@ def download_update(download_url, progress_callback=None, cancel_check=None):
         logger.error(f"Could not create update directory: {e}")
         return False, f"No se pudo crear el directorio de actualizaciones: {e}"
         
-    temp_file = os.path.join(app_data_dir, "ITMQ-Updater.exe")
+    is_zip = download_url.lower().endswith(".zip")
+    temp_file = os.path.join(app_data_dir, "ITMQ-Updater" + (".zip" if is_zip else ".exe"))
     
-    # Clean up old file
+    # Clean up old file/folder
     try:
         if os.path.exists(temp_file):
-            os.remove(temp_file)
+            if os.path.isdir(temp_file): shutil.rmtree(temp_file)
+            else: os.remove(temp_file)
+        
+        # Also clean up potential extraction folder
+        extract_path = os.path.join(app_data_dir, "ITMQ-Updater-Extracted")
+        if os.path.exists(extract_path):
+            shutil.rmtree(extract_path, ignore_errors=True)
     except Exception as e:
-        logger.warning(f"Could not remove old updater file: {e}")
+        logger.warning(f"Could not remove old updater files: {e}")
     
     # Retry logic
     for attempt in range(config.max_retries):
@@ -453,6 +467,24 @@ def download_update(download_url, progress_callback=None, cancel_check=None):
                             last_progress = progress
             
             logger.info(f"Download completed: {temp_file}")
+            
+            if is_zip:
+                # Extract ZIP
+                extract_path = os.path.join(app_data_dir, "ITMQ-Updater-Extracted")
+                os.makedirs(extract_path, exist_ok=True)
+                logger.info(f"Extracting updater ZIP to: {extract_path}")
+                
+                with zipfile.ZipFile(temp_file, 'r') as zip_ref:
+                    zip_ref.extractall(extract_path)
+                
+                # Re-verify path to exe inside extracted folder
+                # We expect ITMQ-Updater.exe to be in the folder
+                potential_exe = os.path.join(extract_path, "ITMQ-Updater.exe")
+                if os.path.exists(potential_exe):
+                    return True, potential_exe
+                else:
+                    return False, "No se encontró ITMQ-Updater.exe dentro del ZIP"
+            
             return True, temp_file
             
         except urllib.error.HTTPError as e:
@@ -485,7 +517,7 @@ def verify_update(file_path, expected_hash):
 # INSTALLATION
 # ============================================================================
 
-def install_update(updater_exe_path, target_version, download_url_for_app):
+def install_update(updater_exe_path, target_version, download_url_for_app, expected_hash=None):
     """
     Launch ITMQ-Updater.exe to handle the rest.
     """
@@ -513,6 +545,7 @@ def install_update(updater_exe_path, target_version, download_url_for_app):
             "--target", current_exe,
             "--url", download_url_for_app,
             "--version", target_version,
+            "--sha256", expected_hash if expected_hash else "",
             "--restart-args", "--updated"
         ]
         
@@ -638,7 +671,7 @@ class UpdateDialog(tk.Toplevel):
                 # 2. Launch ITMQ-Updater
                 self.after(0, lambda: self.status_label.config(text="Iniciando actualizador..."))
                 
-                if install_update(updater_path, version, download_url):
+                if install_update(updater_path, version, download_url, self.update_data.get("sha256")):
                     # Exit main app
                     self.after(500, lambda: os._exit(0))
                 else:

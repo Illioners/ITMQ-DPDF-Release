@@ -14,6 +14,29 @@ import sys
 import updater
 
 
+# --- SINGLE INSTANCE CHECK ---
+def check_single_instance():
+    lock_file = os.path.join(APP_DATA_DIR, "app.lock")
+    if os.path.exists(lock_file):
+        try:
+            # Check if process is actually running
+            with open(lock_file, "r") as f:
+                old_pid = int(f.read().strip())
+            
+            # On Windows, tasklist is reliable
+            res = subprocess.run(["tasklist", "/FI", f"PID eq {old_pid}", "/FO", "CSV"], capture_output=True, text=True)
+            if str(old_pid) in res.stdout:
+                messagebox.showwarning("Aplicación Abierta", "El Clasificador PDF ya se está ejecutando.")
+                os._exit(0)
+        except:
+            pass
+            
+    try:
+        with open(lock_file, "w") as f:
+            f.write(str(os.getpid()))
+    except:
+        pass
+
 # --- GLOBAL SETTINGS & PERSISTENCE ---
 # Use LOCALAPPDATA to avoid permission issues in Program Files or Network Drives
 APP_DATA_DIR = os.path.join(os.getenv('LOCALAPPDATA', os.path.expanduser('~')), "ClasificadorPDF")
@@ -1027,13 +1050,16 @@ class EditorWindow(tk.Toplevel):
         def _load():
             try:
                 total = self.engine.doc.page_count
+                # Optimization: Use smaller step or remove delay entirely if animations are disabled
+                step = 10 if ANIMATIONS_ENABLED else 0
+                
                 for i in range(total):
-                    delay = (i * 30) if ANIMATIONS_ENABLED else 0
+                    delay = (i * step)
                     self.after(delay, self._add_tile, i)
                 
-                final_delay = (total * 30 + 100) if ANIMATIONS_ENABLED else 100
+                final_delay = (total * step + 50) if ANIMATIONS_ENABLED else 50
                 self.after(final_delay, self.update_step_ui)
-                self.after(final_delay + 500, self.update_lazy_loading)
+                self.after(final_delay + 200, self.update_lazy_loading)
             except Exception as e:
                 print(f"Load Error: {e}")
                 self.after(0, lambda: messagebox.showerror("Error", f"Fallo al cargar: {e}"))
@@ -1181,13 +1207,15 @@ class EditorWindow(tk.Toplevel):
         if not current_seg_name: return # Should not happen
 
         # 2. CLEAR SIDEBAR only if necessary
-        # Optimization: only rebuild if segment changed or counts updated
+        # Optimization: only rebuild if segment changed or results keys (counts) updated
         curr_state = (current_seg_name, self.current_idx, {a: len(p) for a, p in self.results.items() if a in current_seg_abbrs})
         if hasattr(self, "_last_sb_state") and self._last_sb_state == curr_state:
             return
         self._last_sb_state = curr_state
 
-        for w in self.sb_frame.winfo_children():
+        # Batch destruction to avoid individual UI updates
+        children = self.sb_frame.winfo_children()
+        for w in children:
             w.destroy()
         self._sb_widgets = {}
 
@@ -1728,10 +1756,10 @@ class SplashScreen(tk.Toplevel):
         self.fade_in(0)
 
     def fade_in(self, alpha):
-        alpha += 0.1
+        alpha += 0.2 # Faster fade in
         if alpha >= 1.0:
             self.attributes("-alpha", 1.0)
-            self.after(800, self.start_fade_out) # Hold 0.8s
+            self.after(400, self.start_fade_out) # Hold reduced from 800ms to 400ms
         else:
             self.attributes("-alpha", alpha)
             self.after(20, lambda: self.fade_in(alpha))
@@ -1740,7 +1768,7 @@ class SplashScreen(tk.Toplevel):
         self.fade_out(1.0)
 
     def fade_out(self, alpha):
-        alpha -= 0.1
+        alpha -= 0.2 # Faster fade out
         if alpha <= 0:
             self.destroy()
             self.on_complete()
@@ -1749,6 +1777,7 @@ class SplashScreen(tk.Toplevel):
             self.after(20, lambda: self.fade_out(alpha))
 
 def main():
+    check_single_instance()
     # High-DPI Awareness
     try:
         from ctypes import windll

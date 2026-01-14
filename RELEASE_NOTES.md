@@ -1,3 +1,19 @@
+# Release v1.8.0
+
+## Información del Build
+
+- **Versión**: 1.8.0
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Actualización Estructural**: Transición a distribución basada en directorios (ZIP) para mayor estabilidad.
+- ✅ **Mejoras en el Updater**: Refactorización completa del sistema de actualización para manejar paquetes ZIP.
+- ✅ **Corrección de Errores**: Solucionados problemas de bloqueo de archivos y errores de inicio relacionados con fuentes.
+- ✅ **Optimización de Interfaz**: Ajustes en el manejo de temas claro/oscuro.
+
+---
+
 # Release v1.3.2
 
 ## Información del Build

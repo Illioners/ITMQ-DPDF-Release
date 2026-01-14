@@ -11,6 +11,8 @@ from tkinter import ttk, messagebox
 import threading
 import logging
 from logging.handlers import RotatingFileHandler
+import zipfile
+import shutil
 
 # ============================================================================
 # LOGGING SETUP
@@ -48,11 +50,12 @@ COLORS = {
 }
 
 class UpdaterUI(tk.Tk):
-    def __init__(self, target_path, download_url, version, restart_args):
+    def __init__(self, target_path, download_url, version, sha256, restart_args):
         super().__init__()
         self.target_path = os.path.abspath(target_path)
         self.download_url = download_url
         self.version = version
+        self.sha256 = sha256
         self.restart_args = restart_args
         self.cancelled = False
 
@@ -147,18 +150,25 @@ class UpdaterUI(tk.Tk):
                     logger.error("Application failed to close even after force kill")
                     raise Exception("No se pudo cerrar la aplicación. Por favor, ciérrela manualmente.")
 
-            # 2. Download new version
-            self.update_status("Descargando actualización...")
-            temp_file = self.download_file()
-            if not temp_file:
+            # 2. Download new version (ZIP)
+            self.update_status("Descargando actualización (ZIP)...")
+            temp_zip = self.download_file()
+            if not temp_zip:
                 logger.error("Download failed")
                 return
 
-            # 3. Replace file
-            self.update_status("Instalando archivos...")
-            self.replace_file(temp_file)
+            # 3. Verify Integrity
+            if self.sha256:
+                self.update_status("Verificando integridad...")
+                if self.hash_file(temp_zip) != self.sha256:
+                    logger.error("Hash verification failed")
+                    raise Exception("La verificación de integridad (SHA256) falló. El archivo puede estar corrupto.")
+            
+            # 4. Extract and Replace
+            self.update_status("Extrayendo e instalando archivos...")
+            self.replace_directory(temp_zip)
 
-            # 4. Success & Launch
+            # 5. Success & Launch
             self.update_status("¡Actualización completada!")
             self.progress_var.set(100)
             time.sleep(1.5)
@@ -225,12 +235,12 @@ class UpdaterUI(tk.Tk):
                 headers={'User-Agent': 'ITMQ-Updater'}
             )
             
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(req, timeout=60) as response:
                 total_size = int(response.headers.get('content-length', 0))
-                temp_filename = self.target_path + ".tmp"
+                temp_filename = self.target_path + ".update.zip"
                 
                 downloaded = 0
-                chunk_size = 8192
+                chunk_size = 65536 # Larger buffer for ZIP
                 
                 with open(temp_filename, 'wb') as f:
                     while True:
@@ -252,35 +262,101 @@ class UpdaterUI(tk.Tk):
             messagebox.showerror("Error de Descarga", f"No se pudo descargar la actualización:\n{e}")
             return None
 
-    def replace_file(self, temp_file):
+    def hash_file(self, file_path):
+        """Calculate SHA256 hash of a file."""
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+
+    def replace_directory(self, temp_zip):
+        """Extract ZIP content over the existing application directory."""
         try:
-            logger.info("Replacing target file...")
-            # Windows might take a bit to release locks even after process exit
-            retries = 5
-            while retries > 0:
+            logger.info("Replacing application directory...")
+            app_dir = os.path.dirname(self.target_path)
+            
+            # 1. Create a temp extraction folder
+            extract_dir = os.path.join(app_dir, "_new_files_temp")
+            if os.path.exists(extract_dir):
+                shutil.rmtree(extract_dir, ignore_errors=True)
+            os.makedirs(extract_dir)
+
+            # 2. Extract ZIP
+            with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+            
+            logger.info(f"Extracted files to {extract_dir}")
+
+            # 3. Move files one by one to overwrite
+            # We skip the updater itself if it's in the same folder (it shouldn't be as it's running from temp usually)
+            self_exe = os.path.basename(sys.argv[0])
+            
+            for item in os.listdir(extract_dir):
+                if item == self_exe: continue
+                
+                s = os.path.join(extract_dir, item)
+                d = os.path.join(app_dir, item)
+                
                 try:
-                    if os.path.exists(self.target_path):
-                        os.remove(self.target_path)
-                    os.rename(temp_file, self.target_path)
-                    logger.info("Target replaced successfully.")
-                    return
-                except OSError as e:
-                    logger.warning(f"Replace attempt failed ({retries}): {e}")
-                    time.sleep(1)
-                    retries -= 1
+                    if os.path.isdir(s):
+                        if os.path.exists(d):
+                            shutil.rmtree(d, ignore_errors=True)
+                        shutil.move(s, d)
+                    else:
+                        # For files, try multiple times in case of locks
+                        retries = 3
+                        while retries > 0:
+                            try:
+                                if os.path.exists(d): os.remove(d)
+                                shutil.move(s, d)
+                                break
+                            except Exception:
+                                time.sleep(1)
+                                retries -= 1
+                except Exception as e:
+                    logger.warning(f"Failed to move {item}: {e}")
+
+            # 4. Post-replacement cleanup
+            shutil.rmtree(extract_dir, ignore_errors=True)
+            try:
+                os.remove(temp_zip)
+            except:
+                pass
             
-            raise Exception("No se pudo reemplazar el archivo tras varios intentos. Asegúrese de que no esté en uso.")
+            # 5. Unblock all files
+            self.unblock_directory(app_dir)
             
-        except OSError as e:
-            raise Exception(f"No se pudo reemplazar el archivo (Error: {e})")
+        except Exception as e:
+            logger.error(f"Directory replacement failed: {e}")
+            raise Exception(f"No se pudieron reemplazar los archivos: {e}")
+
+    def unblock_directory(self, app_dir):
+        """Unblock all files in the directory using PowerShell."""
+        try:
+            logger.info(f"Unblocking all files in: {app_dir}")
+            ps_command = f"Get-ChildItem -Path '{app_dir}' -Recurse -File | Unblock-File -ErrorAction SilentlyContinue"
+            subprocess.run(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_command],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            logger.info("Unblock-File finished.")
+        except Exception as e:
+            logger.warning(f"Unblock failed: {e}")
 
     def launch_app(self):
         try:
             logger.info(f"Launching app: {self.target_path} with args: {self.restart_args}")
             # Ensure path is quoted if it has spaces
-            cmd = [self.target_path] + self.restart_args
-            subprocess.Popen(cmd)
-            self.cleanup()
+            if os.path.exists(self.target_path):
+                cmd = [self.target_path] + self.restart_args
+                subprocess.Popen(cmd)
+                self.cleanup()
+            else:
+                 logger.error(f"Target EXE not found after update: {self.target_path}")
+                 messagebox.showerror("Error", "No se encontró el ejecutable principal después de la actualización.")
         except Exception as e:
             logger.error(f"Launch error: {e}")
             messagebox.showwarning("Advertencia", f"Actualización exitosa pero no se pudo reiniciar la app:\n{e}")
@@ -302,6 +378,7 @@ def main():
     parser.add_argument("--target", required=True, help="Path to the executable to update")
     parser.add_argument("--url", required=True, help="Download URL for the new version")
     parser.add_argument("--version", required=True, help="New version number")
+    parser.add_argument("--sha256", help="Expected SHA256 of the ZIP file")
     # Using REMAINDER to capture all subsequent args correctly
     parser.add_argument("--restart-args", nargs=argparse.REMAINDER, help="Arguments to pass to the app on restart")
     
@@ -333,7 +410,7 @@ def main():
          logger.error(f"Target directory does not exist: {target_dir}")
          sys.exit(1)
 
-    app = UpdaterUI(args.target, args.url, args.version, args.restart_args)
+    app = UpdaterUI(args.target, args.url, args.version, getattr(args, 'sha256', None), args.restart_args)
     app.mainloop()
 
 if __name__ == "__main__":
