@@ -13,6 +13,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import zipfile
 import shutil
+import hashlib
 
 # ============================================================================
 # LOGGING SETUP

@@ -1,3 +1,16 @@
+# Release v1.4.3
+
+## Información del Build
+
+- **Versión**: 1.4.3
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Critical Fix**: Se solucionó el error `name 'hashlib' is not defined` que impedía completar la actualización.
+
+---
+
 # Release v1.4.2
 
 ## Información del Build
