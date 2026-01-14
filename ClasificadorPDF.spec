@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('C:\\Users\\tomas\\Desktop\\CLASSPDF\\version.json', '.'), ('C:\\Users\\tomas\\Desktop\\CLASSPDF\\build_config.json', '.'), ('C:\\Users\\tomas\\Desktop\\CLASSPDF\\Intramaq-logo-mail.png', '.')]
+datas = [('c:\\Users\\tomas\\Desktop\\CLASSPDF\\version.json', '.'), ('c:\\Users\\tomas\\Desktop\\CLASSPDF\\build_config.json', '.'), ('c:\\Users\\tomas\\Desktop\\CLASSPDF\\Intramaq-logo-mail.png', '.')]
 binaries = []
 hiddenimports = ['fitz', 'PIL']
 tmp_ret = collect_all('fitz')
@@ -11,7 +11,7 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['C:\\Users\\tomas\\Desktop\\CLASSPDF\\proglite.py'],
+    ['c:\\Users\\tomas\\Desktop\\CLASSPDF\\proglite.py'],
     pathex=[],
     binaries=binaries,
     datas=datas,
@@ -41,8 +41,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\Users\\tomas\\Desktop\\CLASSPDF\\Intramaq-logo-mail.png'],
-    manifest='C:\\Users\\tomas\\Desktop\\CLASSPDF\\uac_manifest.xml',
+    icon=['c:\\Users\\tomas\\Desktop\\CLASSPDF\\Intramaq-logo-mail.png'],
+    manifest='c:\\Users\\tomas\\Desktop\\CLASSPDF\\uac_manifest.xml',
 )
 coll = COLLECT(
     exe,
