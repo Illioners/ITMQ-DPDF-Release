@@ -1572,7 +1572,8 @@ class MainApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Intramaq PDF Class")
-        self.root.geometry("850x700")
+        self.root.state('zoomed')
+        self.root.minsize(800, 600)
         self.root.configure(bg=COLORS["BG"])
         self.queue = []
         self.selected_profile = tk.StringVar(value=DEFAULT_PROFILE)

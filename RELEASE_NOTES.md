@@ -1,3 +1,17 @@
+# Release v1.4.4
+
+## Información del Build
+
+- **Versión**: 1.4.4
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Interfaz Responsiva**: La aplicación ahora se inicia maximizada por defecto para aprovechar mejor la resolución de la pantalla.
+- ✅ **Ajuste de Ventanas**: Todas las ventanas principales se autoajustan al tamaño del monitor.
+
+---
+
 # Release v1.4.3
 
 ## Información del Build
