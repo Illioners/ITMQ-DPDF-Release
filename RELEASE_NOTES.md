@@ -1,3 +1,18 @@
+# Release v1.4.9
+
+## Información del Build
+
+- **Versión**: 1.4.9
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Ordenamiento de Páginas**:
+    - **Selección Secuencial**: El orden en que selecciona las páginas determina su orden en el archivo final. Visualmente se indica con números (1, 2, 3...) sobre la miniatura.
+    - **Reordenamiento Manual**: En la pantalla de **Resumen Final**, ahora puede usar los botones `<` y `>` para cambiar el orden de las páginas sin necesidad de volver a seleccionar.
+
+---
+
 # Release v1.4.8
 
 ## Información del Build

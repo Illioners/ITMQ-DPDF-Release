@@ -474,12 +474,14 @@ class PageTile(tk.Frame):
         bg_bottom = color if selected else COLORS["ACCENT"]
         fg = "white" if selected else COLORS["TEXT_SECONDARY"]
         txt = label_text or f"Página {self.page_num+1}"
+        weight = "bold" if selected else "normal"
+        size = 11 if selected else 9
         
         self.config(bg=fill, highlightbackground=color if selected else COLORS["BORDER"])
         self.img_container.config(bg=fill)
         self.lbl_img.config(bg=fill)
         self.bottom_bar.config(bg=bg_bottom)
-        self.lbl_status.config(text=txt, bg=bg_bottom, fg=fg)
+        self.lbl_status.config(text=txt, bg=bg_bottom, fg=fg, font=("Inter", size, weight))
         self.btn_rot.config(bg=bg_bottom, fg="white" if selected else COLORS["BLUE"])
 
 # --- WINDOWS ---
@@ -844,9 +846,12 @@ class EditorWindow(tk.Toplevel):
             self._update_page_assignment(tile.page_num, curr_abbr, new_state)
             tile.set_state(new_state, "SELECCIONADO" if new_state else None, COLORS["BLUE"])
 
+
         self.last_clicked_idx = curr_tile_idx
-        if curr_abbr in self.results: self.results[curr_abbr].sort()
-        self.update_sidebar()
+        # if curr_abbr in self.results: self.results[curr_abbr].sort() # REMOVED RE-SORT
+        
+        # We need to full refresh to update numbers on all selected tiles
+        self.update_step_ui()
 
     def _update_page_assignment(self, page_num, abbr, add):
         """Ensures a page is only in one category at a time."""
@@ -1217,7 +1222,12 @@ class EditorWindow(tk.Toplevel):
         
         selected = self.results.get(abbr, [])
         for t in self.tiles:
-            t.set_state(t.page_num in selected, "SELECCIONADO" if t.page_num in selected else None, COLORS["BLUE"])
+            if t.page_num in selected:
+                # Find its index to show "1", "2", "3"
+                idx = selected.index(t.page_num) + 1
+                t.set_state(True, str(idx), COLORS["BLUE"])
+            else:
+                t.set_state(False, None, COLORS["BLUE"])
         
         self.reflow(force=True)
         self.update_sidebar()
@@ -1527,7 +1537,8 @@ class EditorWindow(tk.Toplevel):
              tk.Label(inner, text="No hay categorías seleccionadas.", font=("Inter", 12), bg=COLORS["BG"], fg=COLORS["TEXT"]).pack(pady=50)
 
         for abbr, name in sorted_cats:
-            pages = sorted(self.results[abbr])
+            # pages = sorted(self.results[abbr]) # OLD
+            pages = self.results[abbr] # Keep order
             if not pages: continue
             
             # Category Header
@@ -1538,20 +1549,43 @@ class EditorWindow(tk.Toplevel):
             row_frame = tk.Frame(inner, bg=COLORS["BG"])
             row_frame.grid(row=r, column=0, sticky="w", padx=10)
             
+            def swap_page(a_abbr, idx1, idx2):
+                lst = self.results[a_abbr]
+                if 0 <= idx1 < len(lst) and 0 <= idx2 < len(lst):
+                    lst[idx1], lst[idx2] = lst[idx2], lst[idx1]
+                    summary_win.destroy()
+                    self.show_summary() # Refresh
+            
             for i, p_num in enumerate(pages):
                 # Small thumbnail logic
                 f = tk.Frame(row_frame, bg=COLORS["SURFACE"], bd=1, relief="solid")
                 f.pack(side="left", padx=5)
                 
+                # Controls overlay
+                ctrl = tk.Frame(f, bg=COLORS["ACCENT"], height=20)
+                ctrl.pack(side="top", fill="x")
+                
+                if i > 0:
+                    lb = tk.Label(ctrl, text="<", font=("bold", 8), bg=COLORS["ACCENT"], fg=COLORS["BLUE"], cursor="hand2")
+                    lb.pack(side="left", padx=2)
+                    lb.bind("<Button-1>", lambda e, a=abbr, x=i: swap_page(a, x, x-1))
+                
+                tk.Label(ctrl, text=str(i+1), font=("Inter", 8, "bold"), bg=COLORS["ACCENT"], fg=COLORS["TEXT"]).pack(side="left", expand=True)
+
+                if i < len(pages) - 1:
+                    rb = tk.Label(ctrl, text=">", font=("bold", 8), bg=COLORS["ACCENT"], fg=COLORS["BLUE"], cursor="hand2")
+                    rb.pack(side="right", padx=2)
+                    rb.bind("<Button-1>", lambda e, a=abbr, x=i: swap_page(a, x, x+1))
+
                 try:
-                    img = self.engine.get_page_preview(p_num, scale=0.4) # Smaller scale
+                    img = self.engine.get_page_preview(p_num, scale=0.3) # Smaller scale to fit controls
                     l = tk.Label(f, image=img, bg=COLORS["SURFACE"])
                     l.image = img # Keep ref
                     l.pack()
                 except:
                     tk.Label(f, text=f"Pág {p_num+1}", width=10, height=5).pack()
                 
-                tk.Label(f, text=f"Pág {p_num+1}", font=("Inter", 7), bg=COLORS["SURFACE"]).pack()
+                tk.Label(f, text=f"Orig: {p_num+1}", font=("Inter", 7), bg=COLORS["SURFACE"]).pack()
             
             r += 1
 
