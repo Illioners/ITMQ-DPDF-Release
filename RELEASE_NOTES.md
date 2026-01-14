@@ -1,3 +1,19 @@
+# Release v1.4.11
+
+## Información del Build
+
+- **Versión**: 1.4.11
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Vista Previa en Resumen**:
+    - Se ha añadido la funcionalidad de **Zoom Instantáneo** en la pantalla de "Confirmación Final".
+    - Ahora puede hacer **Clic Derecho** sobre cualquier miniatura en el resumen para ver la página en grande.
+    - Al soltar el botón, la vista previa se cierra, permitiendo verificaciones rápidas antes de guardar.
+
+---
+
 # Release v1.4.10
 
 ## Información del Build

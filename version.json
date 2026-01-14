@@ -1,9 +1,9 @@
 {
-    "version":  "1.4.10",
+    "version":  "1.4.11",
     "release_date":  "2026-01-14",
-    "download_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.10/ClasificadorPDF.zip",
-    "updater_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.10/ITMQ-Updater.zip",
+    "download_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.11/ClasificadorPDF.zip",
+    "updater_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.11/ITMQ-Updater.zip",
     "sha256":  "",
-    "changelog":  "Corrección: Visualización de Contrato Firmado.",
+    "changelog":  "Mejora: Zoom en vista previa final.",
     "min_version":  "1.0.0"
 }

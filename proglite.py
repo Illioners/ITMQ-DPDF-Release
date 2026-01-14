@@ -1587,9 +1587,14 @@ class EditorWindow(tk.Toplevel):
 
                 try:
                     img = self.engine.get_page_preview(p_num, scale=0.3) # Smaller scale to fit controls
-                    l = tk.Label(f, image=img, bg=COLORS["SURFACE"])
+                    l = tk.Label(f, image=img, bg=COLORS["SURFACE"], cursor="hand2")
                     l.image = img # Keep ref
                     l.pack()
+                    
+                    # Zoom bindings
+                    l.bind("<Button-3>", lambda e, p=p_num: self.show_summary_zoom(p, "press"))
+                    l.bind("<ButtonRelease-3>", lambda e, p=p_num: self.show_summary_zoom(p, "release"))
+                    
                 except:
                     tk.Label(f, text=f"Pág {p_num+1}", width=10, height=5).pack()
                 
@@ -1606,6 +1611,50 @@ class EditorWindow(tk.Toplevel):
         
         RoundedButton(footer, "VOLVER A EDITAR", command=summary_win.destroy, color=COLORS["ACCENT"], fg_color=COLORS["TEXT_SECONDARY"], width=200).pack(side="left", padx=40, pady=20)
         RoundedButton(footer, "CONFIRMAR Y GUARDAR", command=lambda: [summary_win.destroy(), self.save()], color=COLORS["GREEN"], fg_color="#FFFFFF", width=250).pack(side="right", padx=40, pady=20)
+
+    def show_summary_zoom(self, page_num, mode):
+        """ Handles right-click zoom in summary window. """
+        if mode == "press":
+            if hasattr(self, '_sum_zoom_win') and self._sum_zoom_win:
+                self._sum_zoom_win.destroy()
+            
+            self._sum_zoom_win = tk.Toplevel(self)
+            self._sum_zoom_win.overrideredirect(True)
+            self._sum_zoom_win.config(bg=COLORS["BORDER"])
+            
+            # Get big image
+            try:
+                img = self.engine.get_page_preview(page_num, scale=1.5)
+                lbl = tk.Label(self._sum_zoom_win, image=img, bg=COLORS["BORDER"], bd=2, relief="solid")
+                lbl.image = img
+                lbl.pack()
+                
+                # Center on mouse
+                mx, my = self.winfo_pointerx(), self.winfo_pointery()
+                w, h = img.width(), img.height()
+                
+                # Adjust position to not go offscreen
+                sw = self.winfo_screenwidth()
+                sh = self.winfo_screenheight()
+                
+                x = mx - w//2
+                y = my - h//2
+                
+                if x < 0: x = 10
+                if y < 0: y = 10
+                if x+w > sw: x = sw - w - 10
+                if y+h > sh: y = sh - h - 10
+                
+                self._sum_zoom_win.geometry(f"{w}x{h}+{x}+{y}")
+                
+            except Exception as e:
+                print(f"Zoom error: {e}")
+                self._sum_zoom_win.destroy()
+                
+        elif mode == "release":
+            if hasattr(self, '_sum_zoom_win') and self._sum_zoom_win:
+                self._sum_zoom_win.destroy()
+                self._sum_zoom_win = None
 
     def save(self):
         if not self.check_cedula_enforcement(): return
