@@ -260,7 +260,7 @@ def main():
     app_folder = os.path.dirname(exe_path) # dist/ClasificadorPDF
     
     # Copiar extras
-    for doc in ['LEEME.txt', 'INSTRUCCIONES.md', 'Reparar.bat']:
+    for doc in ['LEEME.txt', 'INSTRUCCIONES.md', 'Reparar.bat', 'DesbloquearApp.bat', 'RepararAcceso.bat']:
         src = get_abs_path(doc)
         if os.path.exists(src):
             shutil.copy2(src, os.path.join(app_folder, doc))

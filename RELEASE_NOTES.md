@@ -1,3 +1,32 @@
+# Release v1.4.2
+
+## Información del Build
+
+- **Versión**: 1.4.2
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Instalación sin Admin**: Instalador optimizado para evitar requerir permisos de Administrador.
+- ✅ **Desbloqueo Fácil**: Scripts `DesbloquearApp.bat` incluidos para solucionar problemas de acceso.
+- ✅ **Mejoras de Acceso**: Instalación en carpeta de usuario en lugar de Program Files.
+
+---
+
+# Release v1.4.1
+
+## Información del Build
+
+- **Versión**: 1.4.1
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Mejoras Generales**: Corrección de errores y optimización del rendimiento.
+- ✅ **Stability**: Mejoras en la estabilidad de la aplicación.
+
+---
+
 # Release v1.8.0
 
 ## Información del Build
