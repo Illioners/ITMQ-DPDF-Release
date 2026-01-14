@@ -1,3 +1,16 @@
+# Release v1.4.5
+
+## Información del Build
+
+- **Versión**: 1.4.5
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Corrección Crítica**: Solucionado el error que impedía la creación de la carpeta de resultados al usar la opción "Unir PDFs". Ahora los archivos se guardan correctamente en la ubicación original de los documentos.
+
+---
+
 # Release v1.4.4
 
 ## Información del Build

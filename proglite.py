@@ -637,12 +637,13 @@ class ManualInputWindow(tk.Toplevel):
         self.destroy()
 
 class EditorWindow(tk.Toplevel):
-    def __init__(self, parent, file_path, on_finish, profile_name=DEFAULT_PROFILE):
+    def __init__(self, parent, file_path, on_finish, profile_name=DEFAULT_PROFILE, override_output_dir=None):
         super().__init__(parent)
         self.profile_name = profile_name
         self.profile_data = PROFILES.get(profile_name, PROFILES[DEFAULT_PROFILE])
         self.categories = self.profile_data["CATEGORIES"]
         self.segments = self.profile_data["SEGMENTS"]
+        self.override_output_dir = override_output_dir
         
         self.title(f"Clasificador Pro: {os.path.basename(file_path)} [{profile_name}]")
         self.state('zoomed')
@@ -672,6 +673,7 @@ class EditorWindow(tk.Toplevel):
     def bind_keys(self):
         self.bind("<Right>", self._on_key_right)
         self.bind("<Left>", self._on_key_left)
+        # ... (rest of bind_keys logic not changed here, but ensuring indentation matches)
         self.bind("<Up>", self._on_key_up)
         self.bind("<Down>", self._on_key_down)
         self.bind("<Escape>", lambda e: self.prev_step())
@@ -681,6 +683,7 @@ class EditorWindow(tk.Toplevel):
         self.bind("<Control-a>", lambda e: self.select_all())
         self.bind("<Return>", lambda e: self.next_step())
         self.bind("<Control-p>", lambda e: self.toggle_preview())
+
 
     def _on_key_right(self, e):
         # If in grid, move selection, otherwise ignored or custom
@@ -1464,7 +1467,10 @@ class EditorWindow(tk.Toplevel):
         
         def _save_task():
             try:
-                base_dir = os.path.dirname(self.engine.file_path)
+                if self.override_output_dir:
+                    base_dir = self.override_output_dir
+                else:
+                    base_dir = os.path.dirname(self.engine.file_path)
                 file_name = os.path.splitext(os.path.basename(self.engine.file_path))[0]
                 # Incluir cédula en el nombre de la carpeta principal
                 folder_main = os.path.join(base_dir, f"{file_name} {self.cedula}")
@@ -1656,13 +1662,16 @@ class MainApp:
                     # Merge all PDFs into one
                     merged_path = self.merge_pdfs(list(paths))
                     if merged_path:
-                        self.queue.append(merged_path)
+                        # Pass origin directory as override
+                        origin_dir = os.path.dirname(paths[0])
+                        self.queue.append((merged_path, origin_dir))
                 else:
-                    # Add each PDF separately
-                    self.queue.extend(list(paths))
+                    # Add each PDF separately -> (path, None)
+                    for p in paths:
+                        self.queue.append((p, None))
             else:
-                # Single file, add directly
-                self.queue.extend(list(paths))
+                # Single file -> (path, None)
+                self.queue.append((paths[0], None))
             
             self.process_next()
     
@@ -1714,8 +1723,14 @@ class MainApp:
 
     def process_next(self):
         if self.queue:
-            path = self.queue.pop(0)
-            EditorWindow(self.root, path, self.process_next, profile_name=self.selected_profile.get())
+            item = self.queue.pop(0)
+            # Handle both string (old behavior safety) and tuple
+            if isinstance(item, tuple):
+                path, override = item
+            else:
+                path, override = item, None
+                
+            EditorWindow(self.root, path, self.process_next, profile_name=self.selected_profile.get(), override_output_dir=override)
         else:
             messagebox.showinfo("Éxito", "Todos los archivos han sido procesados.")
 

@@ -1,9 +1,9 @@
 {
-    "version":  "1.4.4",
+    "version":  "1.4.5",
     "release_date":  "2026-01-14",
-    "download_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.4/ClasificadorPDF.zip",
-    "updater_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.4/ITMQ-Updater.zip",
+    "download_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.5/ClasificadorPDF.zip",
+    "updater_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.5/ITMQ-Updater.zip",
     "sha256":  "",
-    "changelog":  "Mejora de interfaz: Ventanas autoajustables (maximizadas).",
+    "changelog":  "Corrección crítica: Carpeta de salida al unir PDFs.",
     "min_version":  "1.0.0"
 }
