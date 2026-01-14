@@ -3,7 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('C:\\Users\\tomas\\Desktop\\CLASSPDF\\version.json', '.'), ('C:\\Users\\tomas\\Desktop\\CLASSPDF\\build_config.json', '.'), ('C:\\Users\\tomas\\Desktop\\CLASSPDF\\Intramaq-logo-mail.png', '.')]
 binaries = []
-hiddenimports = ['PIL', 'fitz']
+hiddenimports = ['fitz', 'PIL']
 tmp_ret = collect_all('fitz')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('PIL')
@@ -41,6 +41,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['C:\\Users\\tomas\\Desktop\\CLASSPDF\\Intramaq-logo-mail.png'],
     manifest='C:\\Users\\tomas\\Desktop\\CLASSPDF\\uac_manifest.xml',
 )
 coll = COLLECT(
