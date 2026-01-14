@@ -118,7 +118,7 @@ PROFILES = {
     "Gestion Humana": {
         "CATEGORIES": [
             ("CC", "Cédula"), ("RQ", "Requisición"), ("HVI", "Hoja de vida interna"), 
-            ("CTO", "Contrato laboral"), ("PRE", "Preaviso (Fijo)"), ("EXS", "Otro si (EXS)"),
+            ("CTO", "Contrato laboral"), ("CTOF", "Contrato Firmado"), ("PRE", "Preaviso (Fijo)"), ("EXS", "Otro si (EXS)"),
             ("ARL", "ARL"), ("FEPS", "Formulario EPS"), ("EPS", "EPS"), ("AFP", "AFP"),
             ("FCCF", "Formulario CCF"), ("CCF", "CCF"), ("ADRES", "ADRES"), ("RUAF", "RUAF"),
             ("RC", "Registro Civil"), ("DOCB", "Documentos Beneficiarios"), ("NOIB", "No inclusión"),
@@ -129,7 +129,7 @@ PROFILES = {
             ("APL", "Aceptación laboral"), ("DOC", "Documentos Adicionales")
         ],
         "SEGMENTS": {
-            "A. Contrato y afiliaciones": ["CC", "RQ", "HVI", "CTO", "PRE", "EXS", "ARL", "FEPS", "EPS", "AFP", "FCCF", "CCF", "ADRES", "RUAF", "RC", "DOCB", "NOIB"],
+            "A. Contrato y afiliaciones": ["CC", "RQ", "HVI", "CTO", "CTOF", "PRE", "EXS", "ARL", "FEPS", "EPS", "AFP", "FCCF", "CCF", "ADRES", "RUAF", "RC", "DOCB", "NOIB"],
             "B. Documentos de ingreso": ["HVE", "EI", "PSI", "PC", "AUT", "ANT", "CV", "RT", "CB", "LC"],
             "C. Certificaciones": ["CL", "CE"],
             "D. Comunicaciones": ["GEO", "PO", "APL"],
@@ -138,10 +138,10 @@ PROFILES = {
     },
     "Simplificado": {
         "CATEGORIES": [
-            ("CC", "Cédula"), ("CTO", "Contrato"), ("HVI", "Hoja de Vida"), ("EXT", "Otros")
+            ("CC", "Cédula"), ("CTO", "Contrato"), ("CTOF", "Contrato Firmado"), ("HVI", "Hoja de Vida"), ("EXT", "Otros")
         ],
         "SEGMENTS": {
-            "Principales": ["CC", "CTO", "HVI"],
+            "Principales": ["CC", "CTO", "CTOF", "HVI"],
             "Anexos": ["EXT"]
         }
     }
@@ -1464,6 +1464,14 @@ class EditorWindow(tk.Toplevel):
         self.last_clicked_idx = None
         self.current_idx += 1
         
+        # Auto-skip CTOF if it has no pages (meaning it wasn't used)
+        while self.current_idx < len(self.categories):
+             next_abbr = self.categories[self.current_idx][0]
+             if next_abbr == "CTOF" and next_abbr not in self.results:
+                 self.current_idx += 1
+                 continue
+             break
+
         if self.current_idx >= len(self.categories):
             # Final Form Verification check - Only for Gestion Humana
             if self.profile_name == "Gestion Humana":

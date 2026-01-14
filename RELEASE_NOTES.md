@@ -1,3 +1,19 @@
+# Release v1.4.10
+
+## Información del Build
+
+- **Versión**: 1.4.10
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Corrección de Contrato Firmado**:
+    - Se solucionó un problema donde las páginas de "Contrato Firmado" parecían desaparecer.
+    - Ahora, si marca un contrato como firmado, aparecerá un nuevo paso específico **Contrato Firmado (CTOF)** donde podrá ver las páginas seleccionadas.
+    - Si el contrato **no** está firmado, este paso se omite automáticamente para mantener la agilidad.
+
+---
+
 # Release v1.4.9
 
 ## Información del Build
