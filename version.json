@@ -1,9 +1,9 @@
 {
-    "version":  "1.4.7",
+    "version":  "1.4.8",
     "release_date":  "2026-01-14",
-    "download_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.7/ClasificadorPDF.zip",
-    "updater_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.7/ITMQ-Updater.zip",
+    "download_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.8/ClasificadorPDF.zip",
+    "updater_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.8/ITMQ-Updater.zip",
     "sha256":  "",
-    "changelog":  "Mejora: Verificación de Datos y vista previa final.",
+    "changelog":  "Mejora: Flujo de verificación de cédula optimizado.",
     "min_version":  "1.0.0"
 }

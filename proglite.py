@@ -589,12 +589,17 @@ class ManualInputWindow(tk.Toplevel):
             e.pack(fill="x", pady=(5, 15), ipady=8 if is_cedula else 5)
             return e
 
-        self.entry_name = create_field("NOMBRES:")
         self.entry_surname = create_field("APELLIDOS:")
+        self.entry_name = create_field("NOMBRES:")
         self.entry = create_field("NÚMERO DE CÉDULA:", is_cedula=True)
 
         if suggested_val: self.entry.insert(0, suggested_val)
-        self.entry_name.focus_set() # Focus name first
+        self.entry_surname.focus_set() # Focus surname first
+
+        # Navigation logic
+        self.entry_surname.bind("<Return>", lambda e: self.entry_name.focus_set())
+        self.entry_name.bind("<Return>", lambda e: self.entry.focus_set())
+        self.entry.bind("<Return>", lambda e: self.confirm())
 
         RoundedButton(right, "CONFIRMAR DATOS", command=self.confirm, width=400).pack(pady=20)
         RoundedButton(right, "ROTAR DOCUMENTO", command=self.rotate_pdf, color=COLORS["ACCENT"], fg_color=COLORS["BLUE"], width=400).pack(pady=5)
@@ -602,7 +607,8 @@ class ManualInputWindow(tk.Toplevel):
 
         tk.Label(right, text="[Click Derecho o ESC para Volver]", font=("Inter", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"]).pack(side="bottom", pady=20)
 
-        self.bind("<Return>", lambda e: self.confirm())
+        # Global return removed to avoid accidental submission from other fields
+        # self.bind("<Return>", lambda e: self.confirm()) 
         self.bind("<Button-3>", lambda e: self.destroy())
         self.bind("<Escape>", lambda e: self.destroy())
 

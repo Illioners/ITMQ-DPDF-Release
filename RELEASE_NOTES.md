@@ -1,3 +1,18 @@
+# Release v1.4.8
+
+## Información del Build
+
+- **Versión**: 1.4.8
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Optimización de Verificación**:
+    - Se ha reordenado el formulario a **Apellidos -> Nombres -> Cédula**.
+    - Se implementó navegación rápida con la tecla **ENTER** para pasar fluidamente entre campos.
+
+---
+
 # Release v1.4.7
 
 ## Información del Build
