@@ -11,6 +11,7 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 import sys
+import stat
 import updater
 
 
@@ -1553,6 +1554,9 @@ class EditorWindow(tk.Toplevel):
                 
                 f.write("\n" + "="*40 + "\n")
                 f.write(f"Total Categorias Procesadas: {processed_count}\n")
+            
+            # Make read-only
+            os.chmod(report_path, stat.S_IREAD)
         except Exception as e:
             print(f"Error creating record: {e}")
 

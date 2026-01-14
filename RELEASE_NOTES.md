@@ -1,3 +1,16 @@
+# Release v1.4.6
+
+## Información del Build
+
+- **Versión**: 1.4.6
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Seguridad de Reportes**: Los archivos de reporte ("Registro de Procesamiento") ahora se generan como **Solo Lectura** para evitar modificaciones accidentales.
+
+---
+
 # Release v1.4.5
 
 ## Información del Build
