@@ -1,3 +1,19 @@
+# Release v1.4.7
+
+## Información del Build
+
+- **Versión**: 1.4.7
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Datos Personales**: Ahora se solicitan **Nombres y Apellidos** completos durante la verificación del titular.
+- ✅ **Carpeta Organizada**: La carpeta de resultados se nombra automáticamente como `APELLIDO NOMBRE CEDULA` (todo en mayúsculas).
+- ✅ **Confirmación Visual**: Antes de guardar, se muestra una **vista previa** con todas las páginas clasificadas para su revisión final.
+- ✅ **Nombre de Archivo Original**: Al "Unir PDFs", el archivo resultante conserva el nombre del primer documento seleccionado en lugar de usar un nombre genérico.
+
+---
+
 # Release v1.4.6
 
 ## Información del Build

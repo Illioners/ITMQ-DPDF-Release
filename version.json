@@ -1,9 +1,9 @@
 {
-    "version":  "1.4.6",
+    "version":  "1.4.7",
     "release_date":  "2026-01-14",
-    "download_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.6/ClasificadorPDF.zip",
-    "updater_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.6/ITMQ-Updater.zip",
+    "download_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.7/ClasificadorPDF.zip",
+    "updater_url":  "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.7/ITMQ-Updater.zip",
     "sha256":  "",
-    "changelog":  "Mejora: Reportes de texto son ahora de solo lectura.",
+    "changelog":  "Mejora: Verificación de Datos y vista previa final.",
     "min_version":  "1.0.0"
 }

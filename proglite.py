@@ -557,7 +557,7 @@ class SettingsWindow(tk.Toplevel):
 class ManualInputWindow(tk.Toplevel):
     def __init__(self, parent, page_obj=None, page_num=None, engine=None, suggested_val=None):
         super().__init__(parent)
-        self.title("VERIFICACIÓN DE CÉDULA")
+        self.title("DATOS DEL TITULAR")
         self.state('zoomed')
         self.configure(bg=COLORS["BG"])
         self.result = None
@@ -571,23 +571,34 @@ class ManualInputWindow(tk.Toplevel):
         if page_obj and engine:
              HighResCanvas(left, page_obj, page_num, engine).pack(fill="both", expand=True, padx=20, pady=20)
         else:
-             tk.Label(left, text="Ingrese el número de documento", font=FONTS["TITLE"], bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack(expand=True)
+             tk.Label(left, text="Vista Previa No Disponible", font=FONTS["TITLE"], bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack(expand=True)
 
-        right = tk.Frame(self, bg=COLORS["SURFACE"], width=450, padx=40, pady=80)
+        right = tk.Frame(self, bg=COLORS["SURFACE"], width=500, padx=40, pady=60) # Increased width
         right.pack(side="right", fill="y")
         right.pack_propagate(False)
 
-        tk.Label(right, text="Identificación", font=FONTS["TITLE"], bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(anchor="w")
-        tk.Label(right, text="Verifique o ingrese el número de cédula:", font=FONTS["MAIN"], bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"]).pack(anchor="w", pady=(20, 10))
+        tk.Label(right, text="Verificación de Datos", font=FONTS["TITLE"], bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(anchor="w")
+        tk.Label(right, text="Ingrese los datos del titular para la carpeta:", font=FONTS["MAIN"], bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"]).pack(anchor="w", pady=(10, 20))
         
-        self.entry = tk.Entry(right, font=("Inter", 28, "bold"), justify="center", bd=0, bg=COLORS["ACCENT"], fg=COLORS["TEXT"], highlightthickness=2, highlightbackground=COLORS["BORDER"], highlightcolor=COLORS["BLUE"])
-        self.entry.pack(fill="x", pady=30, ipady=10)
-        if suggested_val: self.entry.insert(0, suggested_val)
-        self.entry.focus_set()
+        # Helper for custom entries
+        def create_field(label, var_ref=None, is_cedula=False):
+            tk.Label(right, text=label, font=("Inter", 9, "bold"), bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(anchor="w")
+            e = tk.Entry(right, font=("Inter", 14), bd=0, bg=COLORS["ACCENT"], fg=COLORS["TEXT"], highlightthickness=1, highlightbackground=COLORS["BORDER"], highlightcolor=COLORS["BLUE"])
+            if is_cedula:
+                e.config(font=("Inter", 20, "bold"), justify="center")
+            e.pack(fill="x", pady=(5, 15), ipady=8 if is_cedula else 5)
+            return e
 
-        RoundedButton(right, "CONFIRMAR", command=self.confirm, width=370).pack(pady=10)
-        RoundedButton(right, "ROTAR DOCUMENTO", command=self.rotate_pdf, color=COLORS["ACCENT"], fg_color=COLORS["BLUE"], width=370).pack(pady=5)
-        RoundedButton(right, "CÉDULA GENÉRICA", command=self.generic, color=COLORS["ACCENT"], fg_color=COLORS["TEXT_SECONDARY"], width=370).pack(pady=5)
+        self.entry_name = create_field("NOMBRES:")
+        self.entry_surname = create_field("APELLIDOS:")
+        self.entry = create_field("NÚMERO DE CÉDULA:", is_cedula=True)
+
+        if suggested_val: self.entry.insert(0, suggested_val)
+        self.entry_name.focus_set() # Focus name first
+
+        RoundedButton(right, "CONFIRMAR DATOS", command=self.confirm, width=400).pack(pady=20)
+        RoundedButton(right, "ROTAR DOCUMENTO", command=self.rotate_pdf, color=COLORS["ACCENT"], fg_color=COLORS["BLUE"], width=400).pack(pady=5)
+        RoundedButton(right, "CÉDULA GENÉRICA", command=self.generic, color=COLORS["ACCENT"], fg_color=COLORS["TEXT_SECONDARY"], width=400).pack(pady=5)
 
         tk.Label(right, text="[Click Derecho o ESC para Volver]", font=("Inter", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"]).pack(side="bottom", pady=20)
 
@@ -603,7 +614,8 @@ class ManualInputWindow(tk.Toplevel):
                 child.configure(bg=COLORS["SURFACE"] if is_right else COLORS["BG"])
                 for grand in child.winfo_children():
                     if isinstance(grand, tk.Label):
-                        grand.configure(bg=grand.master["bg"], fg=COLORS["TEXT"] if "Identificación" in grand["text"] else COLORS["TEXT_SECONDARY"])
+                        # Simple heuristic for theme refresh
+                        grand.configure(bg=grand.master["bg"], fg=COLORS["TEXT"] if grand["font"] != ("Inter", 9) else COLORS["TEXT_SECONDARY"])
                     elif isinstance(grand, tk.Entry):
                         grand.configure(bg=COLORS["ACCENT"], fg=COLORS["TEXT"], highlightbackground=COLORS["BORDER"], highlightcolor=COLORS["BLUE"])
                     elif isinstance(grand, RoundedButton):
@@ -614,27 +626,35 @@ class ManualInputWindow(tk.Toplevel):
     def rotate_pdf(self):
         if self.engine and self.page_num is not None:
             self.engine.rotate_page(self.page_num)
-            # Find the viewer component to re-render
             for w in self.winfo_children():
-                if isinstance(w, tk.Frame): # The left frame
+                if isinstance(w, tk.Frame):
                     for sub in w.winfo_children():
                         if isinstance(sub, HighResCanvas):
                             sub.render_image()
                             break
 
     def confirm(self):
-        val = re.sub(r'\D', '', self.entry.get())
-        if val and 7 <= len(val) <= 10:
-            self.result = val
+        nombre = self.entry_name.get().strip().upper()
+        apellido = self.entry_surname.get().strip().upper()
+        cedula_raw = self.entry.get()
+        cedula = re.sub(r'\D', '', cedula_raw)
+        
+        if not nombre or not apellido:
+             messagebox.showwarning("Faltan Datos", "Por favor ingrese Nombres y Apellidos.")
+             if not nombre: self.entry_name.focus_set()
+             else: self.entry_surname.focus_set()
+             return
+
+        if cedula and 7 <= len(cedula) <= 12: # Slight range increase
+            self.result = (cedula, nombre, apellido)
             self.destroy()
         else:
-            messagebox.showerror("Error", "Cédula inválida. Debe tener entre 7 y 10 dígitos.")
+            messagebox.showerror("Error", "Cédula inválida. Verifique el número.")
             self.entry.focus_set()
 
     def generic(self):
-        val = self.entry.get().strip()
-        if not val: val = "Generico"
-        self.result = val
+        # Generic flow - still needs name? assumed generic
+        self.result = ("GENERICO", "USUARIO", "GENERICO")
         self.destroy()
 
 class EditorWindow(tk.Toplevel):
@@ -1321,7 +1341,11 @@ class EditorWindow(tk.Toplevel):
         self.wait_window(win)
         
         if win.result:
-            self.cedula = win.result
+            if isinstance(win.result, tuple):
+                self.cedula, self.nombre, self.apellido = win.result
+            else:
+                self.cedula = win.result # Fallback
+                self.nombre, self.apellido = "USUARIO", "GENERICO"
             return True
         return False
 
@@ -1406,7 +1430,11 @@ class EditorWindow(tk.Toplevel):
             win = ManualInputWindow(self, self.engine.doc[page_idx], page_idx, self.engine, match.group(0) if match else None)
             self.wait_window(win)
             if not win.result: return
-            self.cedula = win.result
+            if isinstance(win.result, tuple):
+                self.cedula, self.nombre, self.apellido = win.result
+            else:
+                self.cedula = win.result
+                self.nombre, self.apellido = "USUARIO", "GENERICO"
         else:
             if selected:
                 if curr_abbr == "CTO":
@@ -1438,7 +1466,8 @@ class EditorWindow(tk.Toplevel):
                         self.current_idx -= 1
                         return
 
-            self.save() # Direct save after last step
+
+            self.show_summary() # Show summary instead of direct save
         else:
             self.update_step_ui()
 
@@ -1447,6 +1476,88 @@ class EditorWindow(tk.Toplevel):
             self.last_clicked_idx = None
             self.current_idx -= 1
             self.update_step_ui()
+
+    
+    def show_summary(self):
+        """Displays a summary of classified documents."""
+        summary_win = tk.Toplevel(self)
+        summary_win.title("Confirmación Final")
+        summary_win.state('zoomed')
+        summary_win.configure(bg=COLORS["BG"])
+        
+        # Header
+        header = tk.Frame(summary_win, bg=COLORS["SURFACE"], height=80, padx=40)
+        header.pack(fill="x")
+        
+        tk.Label(header, text="RESUMEN DE CLASIFICACIÓN", font=FONTS["TITLE"], bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(side="left", pady=20)
+        
+        # Info
+        info_txt = f"{self.apellido} {self.nombre} - {self.cedula}"
+        tk.Label(header, text=info_txt, font=("Inter", 14, "bold"), bg=COLORS["SURFACE"], fg=COLORS["BLUE"]).pack(side="right", pady=20)
+
+        # Content
+        content = tk.Frame(summary_win, bg=COLORS["BG"])
+        content.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Simple scrollable grid
+        canvas = tk.Canvas(content, bg=COLORS["BG"], highlightthickness=0)
+        scroll = ttk.Scrollbar(content, orient="vertical", command=canvas.yview)
+        inner = tk.Frame(canvas, bg=COLORS["BG"])
+        
+        canvas.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        canvas.pack(fill="both", expand=True)
+        canvas.create_window((0,0), window=inner, anchor="nw")
+        
+        def _on_wheel(e): canvas.yview_scroll(int(-1*(e.delta/120)), "units")
+        canvas.bind("<MouseWheel>", _on_wheel)
+        inner.bind("<MouseWheel>", _on_wheel)
+
+        # Populate with categories
+        r = 0
+        sorted_cats = [c for c in self.categories if c[0] in self.results]
+        
+        if not sorted_cats:
+             tk.Label(inner, text="No hay categorías seleccionadas.", font=("Inter", 12), bg=COLORS["BG"], fg=COLORS["TEXT"]).pack(pady=50)
+
+        for abbr, name in sorted_cats:
+            pages = sorted(self.results[abbr])
+            if not pages: continue
+            
+            # Category Header
+            tk.Label(inner, text=f"{name} ({abbr})", font=("Inter", 11, "bold"), bg=COLORS["BG"], fg=COLORS["TEXT"]).grid(row=r, column=0, sticky="w", padx=10, pady=(20, 5))
+            r += 1
+            
+            # Thumbs row
+            row_frame = tk.Frame(inner, bg=COLORS["BG"])
+            row_frame.grid(row=r, column=0, sticky="w", padx=10)
+            
+            for i, p_num in enumerate(pages):
+                # Small thumbnail logic
+                f = tk.Frame(row_frame, bg=COLORS["SURFACE"], bd=1, relief="solid")
+                f.pack(side="left", padx=5)
+                
+                try:
+                    img = self.engine.get_page_preview(p_num, scale=0.4) # Smaller scale
+                    l = tk.Label(f, image=img, bg=COLORS["SURFACE"])
+                    l.image = img # Keep ref
+                    l.pack()
+                except:
+                    tk.Label(f, text=f"Pág {p_num+1}", width=10, height=5).pack()
+                
+                tk.Label(f, text=f"Pág {p_num+1}", font=("Inter", 7), bg=COLORS["SURFACE"]).pack()
+            
+            r += 1
+
+        inner.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox("all"))
+
+        # Footer Actions
+        footer = tk.Frame(summary_win, bg=COLORS["SURFACE"], height=90)
+        footer.pack(fill="x", side="bottom")
+        
+        RoundedButton(footer, "VOLVER A EDITAR", command=summary_win.destroy, color=COLORS["ACCENT"], fg_color=COLORS["TEXT_SECONDARY"], width=200).pack(side="left", padx=40, pady=20)
+        RoundedButton(footer, "CONFIRMAR Y GUARDAR", command=lambda: [summary_win.destroy(), self.save()], color=COLORS["GREEN"], fg_color="#FFFFFF", width=250).pack(side="right", padx=40, pady=20)
 
     def save(self):
         if not self.check_cedula_enforcement(): return
@@ -1472,9 +1583,13 @@ class EditorWindow(tk.Toplevel):
                     base_dir = self.override_output_dir
                 else:
                     base_dir = os.path.dirname(self.engine.file_path)
-                file_name = os.path.splitext(os.path.basename(self.engine.file_path))[0]
-                # Incluir cédula en el nombre de la carpeta principal
-                folder_main = os.path.join(base_dir, f"{file_name} {self.cedula}")
+                
+                # New Naming Convention
+                # file_name = os.path.splitext(os.path.basename(self.engine.file_path))[0] (Unused now)
+                
+                folder_name = f"{self.apellido} {self.nombre} {self.cedula}"
+                folder_main = os.path.join(base_dir, folder_name)
+                
                 folder = os.path.join(folder_main, "HISTORIA LABORAL")
                 os.makedirs(folder, exist_ok=True)
                 
@@ -1687,7 +1802,10 @@ class MainApp:
             temp_dir = os.path.join(APP_DATA_DIR, "Temp_PDF_Merged")
             os.makedirs(temp_dir, exist_ok=True)
             
-            merged_name = f"Merged_{timestamp}.pdf"
+            # merged_name = f"Merged_{timestamp}.pdf"
+            # Use name of first file
+            first_name = os.path.splitext(os.path.basename(paths[0]))[0]
+            merged_name = f"{first_name}.pdf"
             merged_path = os.path.join(temp_dir, merged_name)
             
             # Create merged document
