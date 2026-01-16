@@ -76,7 +76,7 @@ CURRENT_THEME = UI_SETTINGS["theme"]
 ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 
 # --- VERSION INFO ---
-APP_VERSION = "2.0.0 (dev)" 
+APP_VERSION = "1.4.13" 
 
 def check_for_updates():
     """Checks for updates by comparing with version.json or a remote source."""
@@ -89,9 +89,14 @@ def check_for_updates():
             with open(ver_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except UnicodeDecodeError:
-            # Fallback for BOM or other encodings
-            with open(ver_path, "r", encoding="utf-8-sig") as f:
-                data = json.load(f)
+            try:
+                # Fallback for BOM or other encodings
+                with open(ver_path, "r", encoding="utf-8-sig") as f:
+                    data = json.load(f)
+            except UnicodeDecodeError:
+                # Fallback for UTF-16 (Common in Windows)
+                with open(ver_path, "r", encoding="utf-16") as f:
+                    data = json.load(f)
                 
         new_version = data.get("version")
         if new_version and new_version != APP_VERSION:
@@ -2228,22 +2233,30 @@ def main():
             os._exit(0)
     
     # 2. Check for updates
-    check_for_updates()
+    try:
+        check_for_updates()
+    except Exception as e:
+        print(f"Update check failed: {e}")
 
-    if logo_exists:
-        try:
-            # Set App Icon
-            icon_img = ImageTk.PhotoImage(file=logo_path)
-            root.iconphoto(True, icon_img)
-        except Exception as e:
-            print(f"Icon error: {e}")
+    try:
+        if logo_exists:
+            try:
+                # Set App Icon
+                icon_img = ImageTk.PhotoImage(file=logo_path)
+                root.iconphoto(True, icon_img)
+            except Exception as e:
+                print(f"Icon error: {e}")
 
-        # time.sleep(0.5) # Removed to improve startup speed
-        SplashScreen(root, launch_main)
-    else:
-        launch_main()
-        
-    root.mainloop()
+            # time.sleep(0.5) # Removed to improve startup speed
+            SplashScreen(root, launch_main)
+        else:
+            launch_main()
+            
+        root.mainloop()
+    except Exception as e:
+        messagebox.showerror("Error Fatal en Proglite", f"Se produjo un error crítico:\n{e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()

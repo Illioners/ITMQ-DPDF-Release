@@ -884,10 +884,10 @@ class EditorView(QWidget):
         self.bottom_bar.content_layout.addLayout(bar_container_layout)
         
         # --- ROW 1: Segments (Horizontal) ---
-        self.segment_row = QHBoxLayout()
-        self.segment_row.setSpacing(10)
-        self.segment_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        bar_container_layout.addLayout(self.segment_row)
+        self.segment_btn_layout = QHBoxLayout()
+        self.segment_btn_layout.setSpacing(10)
+        self.segment_btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        bar_container_layout.addLayout(self.segment_btn_layout)
         self.segment_btns = []
         
         # --- ROW 2: Main Controls & Categories ---
@@ -1498,7 +1498,7 @@ class EditorView(QWidget):
                 btn.setCheckable(True)
                 btn.setObjectName("segmentBtn") # Specialized naming
                 btn.clicked.connect(lambda _, idx=i: self._jump_to_segment(idx))
-                self.segment_row.addWidget(btn)
+                self.segment_btn_layout.addWidget(btn)
                 self.segment_btns.append(btn)
         
         # Update checked state AND text dynamically

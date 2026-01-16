@@ -370,6 +370,18 @@ class AutoDrawer(QFrame):
     def addStretch(self):
         self.content_layout.addStretch()
 
+    def set_expanded_size(self, size):
+        self.expanded_size = size
+        # If currently expanded, update animation/size immediately?
+        # For safety, let's just update the target variable. 
+        # If open, the next toggle will use it, or we could force update.
+        if self.is_expanded:
+            if self.vertical: self.setFixedHeight(size)
+            else: self.setFixedWidth(size)
+            self.anim.setStartValue(size) # Update anim start check?
+            # Actually, _start_anim sets values. 
+            pass
+
     def enterEvent(self, event):
         super().enterEvent(event)
         self.close_timer.stop()
