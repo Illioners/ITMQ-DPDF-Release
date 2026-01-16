@@ -1,0 +1,121 @@
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+def print_step(msg):
+    print("\n" + "="*50)
+    print(f" {msg}")
+    print("="*50)
+
+def run_command(cmd, shell=True):
+    print(f"> Executing: {' '.join(cmd) if isinstance(cmd, list) else cmd}")
+    try:
+        subprocess.check_call(cmd, shell=shell)
+    except subprocess.CalledProcessError as e:
+        print(f"!!! Error executing command: {e}")
+        sys.exit(1)
+
+def clean_dirs():
+    print_step("1. CLEANING PREVIOUS BUILDS")
+    for d in ["build", "dist"]:
+        if os.path.exists(d):
+            print(f"Removing {d}...")
+            try:
+                shutil.rmtree(d)
+            except Exception as e:
+                print(f"Warning: Could not remove {d}: {e}")
+
+def check_dependencies():
+    print_step("2. CHECKING DEPENDENCIES")
+    if os.path.exists("requirements.txt"):
+        run_command([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+    else:
+        print("No requirements.txt found, skipping pip install.")
+
+    # Check for PyInstaller
+    try:
+        subprocess.check_call(["pyinstaller", "--version"], shell=True, stdout=subprocess.DEVNULL)
+    except:
+        print("PyInstaller not found! Installing...")
+        run_command([sys.executable, "-m", "pip", "install", "pyinstaller"])
+
+def build_updater():
+    print_step("3. COMPILING UPDATER (ITMQ-Updater)")
+    spec_file = os.path.join("build_config", "ITMQ-Updater.spec")
+    if not os.path.exists(spec_file):
+        print(f"Error: Spec file {spec_file} not found!")
+        sys.exit(1)
+        
+    cmd = ["pyinstaller", spec_file, "--clean", "--noconfirm", "--log-level=WARN"]
+    run_command(cmd)
+    
+    # Verify
+    if not os.path.exists(os.path.join("dist", "ITMQ-Updater", "ITMQ-Updater.exe")):
+        print("Error: ITMQ-Updater.exe was not created!")
+        sys.exit(1)
+
+def build_app():
+    print_step("4. COMPILING MAIN APP (Proglite/ITMQ-GD)")
+    spec_file = os.path.join("build_config", "suite.spec")
+    if not os.path.exists(spec_file):
+        print(f"Error: Spec file {spec_file} not found!")
+        sys.exit(1)
+
+    cmd = ["pyinstaller", spec_file, "--clean", "--noconfirm", "--log-level=WARN"]
+    run_command(cmd)
+
+    # Cleanup AI Trainer if present (as requested previously)
+    ai_trainer = os.path.join("dist", "ITMQ-GD-Suite", "EntrenadorAI.exe")
+    if os.path.exists(ai_trainer):
+        print("Removing EntrenadorAI.exe (Cleaning up)...")
+        os.remove(ai_trainer)
+
+def package_release():
+    print_step("5. PACKAGING RELEASE (ZIPs)")
+    dist_dir = os.path.abspath("dist")
+    
+    # --- Updater ZIP ---
+    updater_dir = os.path.join(dist_dir, "ITMQ-Updater")
+    if os.path.exists(updater_dir):
+        zip_name = os.path.join(dist_dir, "ITMQ-Updater")
+        print(f"Creating ITMQ-Updater.zip...")
+        shutil.make_archive(zip_name, 'zip', root_dir=dist_dir, base_dir="ITMQ-Updater")
+    else:
+        print("Error: ITMQ-Updater directory missing in dist!")
+
+    # --- Main Suite ZIP ---
+    suite_dir = os.path.join(dist_dir, "ITMQ-GD-Suite")
+    if os.path.exists(suite_dir):
+        # Add Installer Script
+        iss_src = os.path.join("build_config", "installer.iss")
+        if os.path.exists(iss_src):
+            shutil.copy(iss_src, suite_dir)
+            print("Included installer.iss")
+        
+        # Add a README or instruction if needed
+        # (Optional)
+        
+        zip_name = os.path.join(dist_dir, "ITMQ-GD")
+        print(f"Creating ITMQ-GD.zip...")
+        shutil.make_archive(zip_name, 'zip', root_dir=dist_dir, base_dir="ITMQ-GD-Suite")
+    else:
+        print("Error: ITMQ-GD-Suite directory missing in dist!")
+
+    print_step("COMPILATION & PACKAGING COMPLETE")
+    print(f"Outputs in: {dist_dir}")
+    print(f"1. ITMQ-GD.zip (Main App + Installer Script)")
+    print(f"2. ITMQ-Updater.zip (Standalone Updater)")
+
+if __name__ == "__main__":
+    start_time = time.time()
+    
+    clean_dirs()
+    check_dependencies()
+    build_updater()
+    build_app()
+    package_release()
+    
+    duration = time.time() - start_time
+    print(f"\nDone in {duration:.2f} seconds.")

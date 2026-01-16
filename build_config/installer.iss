@@ -1,11 +1,12 @@
-; Inno Setup Script for ClasificadorPDF
+; Inno Setup Script for ITMQ-GD (Proglite)
 ; Requires Inno Setup 6.x
 
-#define MyAppName "ClasificadorPDF"
-#define MyAppVersion "1.4.0"
+#define MyAppName "ITMQ-GD"
+#define MyAppVersion "1.4.13"
 #define MyAppPublisher "Intramaq"
 #define MyAppURL "https://github.com/Illioners/ITMQ-DPDF"
-#define MyAppExeName "ClasificadorPDF.exe"
+#define MyAppExeName "ITMQ-GD.exe"
+#define MyUpdaterName "ITMQ-Updater.exe"
 
 [Setup]
 AppId={{B8F5D2C1-9A4E-4F3B-8D7C-1A2B3C4D5E6F}
@@ -19,8 +20,8 @@ DefaultDirName={localappdata}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 ; Output settings
-OutputDir=dist
-OutputBaseFilename=ClasificadorPDF_Setup_v{#MyAppVersion}
+OutputDir=..\dist
+OutputBaseFilename=ITMQ-GD_Setup_v{#MyAppVersion}
 ; Compression
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -29,7 +30,7 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ; Visual
 WizardStyle=modern
-SetupIconFile=Intramaq-logo-mail.ico
+SetupIconFile=..\Intramaq-logo-mail.ico
 ; Uninstaller
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName={#MyAppName}
@@ -43,10 +44,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; Main application folder
-Source: "dist\ClasificadorPDF\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Main application files (Folder) - Note the relative path from build_config/ to dist/
+Source: "..\dist\ITMQ-GD-Suite\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Updater Executable (Standalone)
+Source: "..\dist\ITMQ-Updater\ITMQ-Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; VC++ Redistributable (if present)
-Source: "installer\prerequisites\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
+Source: "..\installer\prerequisites\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -64,20 +67,3 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"
-
-[Code]
-function NeedsVCRedist: Boolean;
-var
-  Version: String;
-begin
-  // Check if VC++ 2015-2022 x64 is installed
-  Result := not RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Version', Version);
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-begin
-  if CurStep = ssPostInstall then
-  begin
-    // Additional post-install actions can be added here
-  end;
-end;
