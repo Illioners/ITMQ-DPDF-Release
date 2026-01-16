@@ -1,0 +1,6 @@
+{
+    "authorized_ids": {
+        "EXAMPLE-HWID-FROM-ADMIN": "30D",
+        "ANOTHER-CLIENT-ID": "LIFETIME"
+    }
+}

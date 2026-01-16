@@ -20,7 +20,7 @@ import hashlib
 # ============================================================================
 
 def setup_logging():
-    log_dir = os.path.join(os.getenv('LOCALAPPDATA', os.path.expanduser('~')), 'ClasificadorPDF', 'Logs')
+    log_dir = os.path.join(os.getenv('LOCALAPPDATA', os.path.expanduser('~')), 'ITMQ-GD', 'Logs')
     try:
         os.makedirs(log_dir, exist_ok=True)
     except:
@@ -68,7 +68,7 @@ class UpdaterUI(tk.Tk):
         self.after(1000, self.start_update_process)
 
     def setup_window(self):
-        self.title("Actualizando ClasificadorPDF")
+        self.title("Actualizando ITMQ-GD")
         self.geometry("450x250")
         self.resizable(False, False)
         self.configure(bg=COLORS["BG"])

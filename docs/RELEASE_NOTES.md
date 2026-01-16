@@ -1,0 +1,249 @@
+# Release Notes - ITMQ-GD
+
+## v2.0.0 (dev) - 2026-01-15
+- **Rebranding**: Cambio de nombre de la aplicación de ClasificadorPDF a **ITMQ-GD**.
+- **Versión 2.0.0 (dev)**: Inicio de la rama de desarrollo para la versión 2.0.
+- **Optimización de Memoria**: Implementación de un límite de caché en el motor PDF (`PDFEngine`) para mejorar el rendimiento en sesiones largas.
+- **Limpieza de Código**: Eliminación de componentes obsoletos (`proglite.py`, `updater.py`, etc.).
+- **Preparación para Funciones IA**: Base lista para las sugerencias inteligentes de categorías.
+
+---
+
+# Release Notas - ClasificadorPDF
+
+## Información del Build
+
+- **Versión**: 1.4.11
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Vista Previa en Resumen**:
+    - Se ha añadido la funcionalidad de **Zoom Instantáneo** en la pantalla de "Confirmación Final".
+    - Ahora puede hacer **Clic Derecho** sobre cualquier miniatura en el resumen para ver la página en grande.
+    - Al soltar el botón, la vista previa se cierra, permitiendo verificaciones rápidas antes de guardar.
+
+---
+
+# Release v1.4.10
+
+## Información del Build
+
+- **Versión**: 1.4.10
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Corrección de Contrato Firmado**:
+    - Se solucionó un problema donde las páginas de "Contrato Firmado" parecían desaparecer.
+    - Ahora, si marca un contrato como firmado, aparecerá un nuevo paso específico **Contrato Firmado (CTOF)** donde podrá ver las páginas seleccionadas.
+    - Si el contrato **no** está firmado, este paso se omite automáticamente para mantener la agilidad.
+
+---
+
+# Release v1.4.9
+
+## Información del Build
+
+- **Versión**: 1.4.9
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Ordenamiento de Páginas**:
+    - **Selección Secuencial**: El orden en que selecciona las páginas determina su orden en el archivo final. Visualmente se indica con números (1, 2, 3...) sobre la miniatura.
+    - **Reordenamiento Manual**: En la pantalla de **Resumen Final**, ahora puede usar los botones `<` y `>` para cambiar el orden de las páginas sin necesidad de volver a seleccionar.
+
+---
+
+# Release v1.4.8
+
+## Información del Build
+
+- **Versión**: 1.4.8
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Optimización de Verificación**:
+    - Se ha reordenado el formulario a **Apellidos -> Nombres -> Cédula**.
+    - Se implementó navegación rápida con la tecla **ENTER** para pasar fluidamente entre campos.
+
+---
+
+# Release v1.4.7
+
+## Información del Build
+
+- **Versión**: 1.4.7
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Datos Personales**: Ahora se solicitan **Nombres y Apellidos** completos durante la verificación del titular.
+- ✅ **Carpeta Organizada**: La carpeta de resultados se nombra automáticamente como `APELLIDO NOMBRE CEDULA` (todo en mayúsculas).
+- ✅ **Confirmación Visual**: Antes de guardar, se muestra una **vista previa** con todas las páginas clasificadas para su revisión final.
+- ✅ **Nombre de Archivo Original**: Al "Unir PDFs", el archivo resultante conserva el nombre del primer documento seleccionado en lugar de usar un nombre genérico.
+
+---
+
+# Release v1.4.6
+
+## Información del Build
+
+- **Versión**: 1.4.6
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Seguridad de Reportes**: Los archivos de reporte ("Registro de Procesamiento") ahora se generan como **Solo Lectura** para evitar modificaciones accidentales.
+
+---
+
+# Release v1.4.5
+
+## Información del Build
+
+- **Versión**: 1.4.5
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Corrección Crítica**: Solucionado el error que impedía la creación de la carpeta de resultados al usar la opción "Unir PDFs". Ahora los archivos se guardan correctamente en la ubicación original de los documentos.
+
+---
+
+# Release v1.4.4
+
+## Información del Build
+
+- **Versión**: 1.4.4
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Interfaz Responsiva**: La aplicación ahora se inicia maximizada por defecto para aprovechar mejor la resolución de la pantalla.
+- ✅ **Ajuste de Ventanas**: Todas las ventanas principales se autoajustan al tamaño del monitor.
+
+---
+
+# Release v1.4.3
+
+## Información del Build
+
+- **Versión**: 1.4.3
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Critical Fix**: Se solucionó el error `name 'hashlib' is not defined` que impedía completar la actualización.
+
+---
+
+# Release v1.4.2
+
+## Información del Build
+
+- **Versión**: 1.4.2
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Instalación sin Admin**: Instalador optimizado para evitar requerir permisos de Administrador.
+- ✅ **Desbloqueo Fácil**: Scripts `DesbloquearApp.bat` incluidos para solucionar problemas de acceso.
+- ✅ **Mejoras de Acceso**: Instalación en carpeta de usuario en lugar de Program Files.
+
+---
+
+# Release v1.4.1
+
+## Información del Build
+
+- **Versión**: 1.4.1
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Mejoras Generales**: Corrección de errores y optimización del rendimiento.
+- ✅ **Stability**: Mejoras en la estabilidad de la aplicación.
+
+---
+
+# Release v1.8.0
+
+## Información del Build
+
+- **Versión**: 1.8.0
+- **Fecha**: 2026-01-14
+
+## Novedades de Esta Versión
+
+- ✅ **Actualización Estructural**: Transición a distribución basada en directorios (ZIP) para mayor estabilidad.
+- ✅ **Mejoras en el Updater**: Refactorización completa del sistema de actualización para manejar paquetes ZIP.
+- ✅ **Corrección de Errores**: Solucionados problemas de bloqueo de archivos y errores de inicio relacionados con fuentes.
+- ✅ **Optimización de Interfaz**: Ajustes en el manejo de temas claro/oscuro.
+
+---
+
+# Release v1.3.2
+
+## Información del Build
+
+- **Versión**: 1.3.2
+- **Fecha**: 2026-01-13
+
+## Novedades de Esta Versión
+
+- ✅ **Corrección Crítica**: Corregido error de variable de versión que impedía el inicio de la aplicación.
+- ✅ **Mejora del Updater**: Mayor robustez en el proceso de reemplazo de archivos y manejo de bloqueos en Windows.
+- ✅ **Permisos Elevados**: El Updater ahora solicita permisos de administrador (UAC) para asegurar el reemplazo de archivos en cualquier ubicación.
+- ✅ **Logs del Updater**: Implementado sistema de logs en `%LOCALAPPDATA%\ClasificadorPDF\Logs\itmq_updater.log`.
+
+---
+
+# Release v1.3.1
+
+## Información del Build
+
+- **Versión**: 1.3.1
+- **Fecha**: 2026-01-13
+- **SHA256**: `0747d514d1bae47592194ad3fbb89d9432a4358d461b848e75103b39c7a696b0`
+
+## Novedades de Esta Versión
+
+Esta versión se enfoca en la limpieza del proyecto, la eliminación de la firma digital y la optimización del proceso de compilación.
+
+### Mejoras Principales
+
+- ✅ **Eliminación de Firma Digital**: Se ha removido la dependencia de certificados PFX para simplificar la distribución.
+- ✅ **Optimización de Build**: Script de compilación `build.py` completamente rediseñado y más robusto.
+- ✅ **Limpieza de Proyecto**: Eliminación de archivos temporales, certificados obsoletos y scripts de prueba innecesarios.
+- ✅ **Mejora de Consola**: Soporte mejorado para la consola de Windows en los scripts de utilidad.
+
+### Cambios Internos
+
+- Refactorización de `build.py` para mejor manejo de errores.
+- Actualización de `.gitignore` para mayor seguridad.
+- Mejora en el cálculo automático de SHA256.
+
+## Instalación
+
+1. Descarga `ClasificadorPDF.exe`
+2. Verifica el hash SHA256 (opcional pero recomendado)
+3. Ejecuta el instalador
+
+## Notas
+
+- Esta versión incluye actualizaciones automáticas
+- El sistema verificará automáticamente nuevas versiones al iniciar
+- Se recomienda cerrar todas las instancias de la aplicación antes de actualizar
+
+## Changelog Completo
+
+- Sistema de logging con rotación de archivos
+- Configuración centralizada del actualizador
+- Validación de integridad de descargas mejorada
+- Mejor manejo de errores de red
+- Interfaz de usuario más responsiva durante actualizaciones
+- Optimizaciones de rendimiento en el motor PDF
+- Correcciones menores de estabilidad

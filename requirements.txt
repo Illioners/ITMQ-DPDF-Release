@@ -1,3 +1,6 @@
 pyinstaller
-pillow
 pymupdf
+PyQt6
+Pillow
+scikit-learn
+pytesseract

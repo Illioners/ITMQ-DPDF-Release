@@ -1,4 +1,5 @@
 {
     "theme": "light",
-    "animations": false
+    "animations": false,
+    "tutorial_completed": true
 }

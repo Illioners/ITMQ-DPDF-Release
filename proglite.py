@@ -12,7 +12,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 import sys
 import stat
-import updater
+import subprocess
+import gc
+import itmq_license
 
 
 # --- SINGLE INSTANCE CHECK ---
@@ -73,6 +75,103 @@ UI_SETTINGS = load_settings()
 CURRENT_THEME = UI_SETTINGS["theme"]
 ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 
+# --- VERSION INFO ---
+APP_VERSION = "2.0.0 (dev)" 
+
+def check_for_updates():
+    """Checks for updates by comparing with version.json or a remote source."""
+    try:
+        ver_path = os.path.join(os.path.dirname(__file__), "version.json")
+        if not os.path.exists(ver_path):
+            return
+            
+        with open(ver_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            new_version = data.get("version")
+            if new_version and new_version != APP_VERSION:
+                # Ask user to update
+                if messagebox.askyesno("Actualización Disponible", 
+                    f"Hay una nueva versión disponible: {new_version}\n¿Desea actualizar ahora?"):
+                    
+                    updater_path = os.path.join(os.path.dirname(__file__), "itmq_updater.py")
+                    if os.path.exists(updater_path):
+                        # Launch updater
+                        cmd = [
+                            sys.executable, updater_path,
+                            "--target", sys.executable if getattr(sys, 'frozen', False) else sys.argv[0],
+                            "--url", data.get("download_url", ""),
+                            "--version", new_version,
+                            "--sha256", data.get("sha256", "")
+                        ]
+                        subprocess.Popen(cmd)
+                        os._exit(0)
+    except Exception as e:
+        print(f"Update check error: {e}")
+
+# --- LICENSE SYSTEM UI ---
+class LicenseDialog(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Activación de Licencia")
+        self.geometry("500x350")
+        self.resizable(False, False)
+        self.configure(bg=COLORS["BG"])
+        self.transient(parent)
+        self.grab_set()
+        
+        # Center
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (250)
+        y = (self.winfo_screenheight() // 2) - (175)
+        self.geometry(f"+{x}+{y}")
+        
+        self.success = False
+        
+        self.setup_ui()
+        
+    def setup_ui(self):
+        # Header
+        header = tk.Frame(self, bg=COLORS["BLUE"], height=60)
+        header.pack(fill="x")
+        tk.Label(header, text="Activación ITMQ-GD", font=("Segoe UI", 14, "bold"), bg=COLORS["BLUE"], fg="white").pack(pady=15)
+        
+        content = tk.Frame(self, bg=COLORS["BG"], padx=30, pady=20)
+        content.pack(fill="both", expand=True)
+        
+        tk.Label(content, text="Esta aplicación requiere una licencia válida.", font=FONTS["BOLD"], bg=COLORS["BG"]).pack(anchor="w")
+        tk.Label(content, text="Por favor, introduzca la Llave Maestra proporcionada por su proveedor.", 
+                 font=("Segoe UI", 9), bg=COLORS["BG"], wraplength=440, justify="left").pack(anchor="w", pady=(5, 10))
+        
+        # Key Entry
+        tk.Label(content, text="LLAVE DE ACTIVACIÓN:", font=FONTS["BOLD"], bg=COLORS["BG"]).pack(anchor="w", pady=(10, 5))
+        self.key_var = tk.StringVar()
+        self.entry_key = tk.Entry(content, textvariable=self.key_var, font=("Consolas", 12), bd=1, relief="solid")
+        self.entry_key.pack(fill="x", pady=5)
+        self.entry_key.focus_set()
+        
+        # Action Buttons
+        btn_frame = tk.Frame(content, bg=COLORS["BG"])
+        btn_frame.pack(fill="x", pady=20)
+        
+        self.btn_activate = tk.Button(btn_frame, text="ACTIVAR AHORA", command=self.activate, 
+                                     bg=COLORS["BLUE"], fg="white", font=FONTS["BOLD"], padx=20, pady=8, bd=0, cursor="hand2")
+        self.btn_activate.pack(side="right")
+        
+        tk.Button(btn_frame, text="Salir", command=lambda: os._exit(0), bg=COLORS["BG"], bd=0, cursor="hand2").pack(side="left")
+
+    def activate(self):
+        key = self.key_var.get().strip()
+        dtype = itmq_license.validate_key(key)
+        if dtype:
+            if itmq_license.save_license(key, dtype):
+                messagebox.showinfo("Éxito", f"¡Aplicación activada correctamente!\nTipo: {dtype}")
+                self.success = True
+                self.destroy()
+            else:
+                messagebox.showerror("Error", "No se pudo guardar el archivo de licencia.")
+        else:
+            messagebox.showerror("Error", "La llave de activación no es válida.")
+
 # --- CONFIGURATION & STYLING ---
 THEMES = {
     "light": {
@@ -106,10 +205,10 @@ THEMES = {
 COLORS = THEMES[CURRENT_THEME]
 
 FONTS = {
-    "MAIN": ("Inter", 10),
-    "BOLD": ("Inter", 10, "bold"),
-    "TITLE": ("Inter", 22, "bold"),
-    "SUBTITLE": ("Inter", 11),
+    "MAIN": ("Segoe UI Variable Text", 10),
+    "BOLD": ("Segoe UI Variable Text", 10, "bold"),
+    "TITLE": ("Segoe UI Variable Display", 22, "bold"),
+    "SUBTITLE": ("Segoe UI Variable Text", 11),
 }
 # Fallback font handling will be done in main() after root initialization
 
@@ -348,23 +447,24 @@ class PageTile(tk.Frame):
         self.on_rotate = on_rotate
         self.selected = False
         self.is_rendered = False
+        self.last_render_scale = 0
         
         self.img_container = tk.Frame(self, bg=COLORS["SURFACE"], width=170, height=220)
         self.img_container.pack_propagate(False)
         self.img_container.pack(padx=8, pady=8)
         
         self.tk_img = None
-        self.lbl_img = tk.Label(self.img_container, text="⏳", font=("Inter", 24), bg=COLORS["SURFACE"], fg=COLORS["BORDER"], cursor="hand2")
+        self.lbl_img = tk.Label(self.img_container, text="⏳", font=("Segoe UI Variable Text", 24), bg=COLORS["SURFACE"], fg=COLORS["BORDER"], cursor="hand2")
         self.lbl_img.pack(expand=True, fill="both")
         
         self.bottom_bar = tk.Frame(self, bg=COLORS["ACCENT"], height=32)
         self.bottom_bar.pack(fill="x", side="bottom")
         self.bottom_bar.pack_propagate(False)
 
-        self.lbl_status = tk.Label(self.bottom_bar, text=f"{page_num+1}", bg=COLORS["ACCENT"], fg=COLORS["TEXT_SECONDARY"], font=("Inter", 9))
+        self.lbl_status = tk.Label(self.bottom_bar, text=f"{page_num+1}", bg=COLORS["ACCENT"], fg=COLORS["TEXT_SECONDARY"], font=("Segoe UI Variable Text", 9))
         self.lbl_status.pack(side="left", padx=10)
         
-        self.btn_rot = tk.Label(self.bottom_bar, text="↻", bg=COLORS["ACCENT"], fg=COLORS["BLUE"], font=("Inter", 12), cursor="hand2")
+        self.btn_rot = tk.Label(self.bottom_bar, text="↻", bg=COLORS["ACCENT"], fg=COLORS["BLUE"], font=("Segoe UI Variable Text", 12), cursor="hand2")
         self.btn_rot.pack(side="right", padx=10)
         self.btn_rot.bind("<Button-1>", self._handle_rotate)
 
@@ -389,8 +489,9 @@ class PageTile(tk.Frame):
         self.on_zoom(self.page_num, mode="release", duration=duration)
 
     def trigger_render(self, scale=0.25):
-        if self.is_rendered: return
+        if self.is_rendered and abs(self.last_render_scale - scale) < 0.05: return
         self.is_rendered = True
+        self.last_render_scale = scale
         self.engine.async_render(self.page_num, scale, self._apply_image)
 
     def unload_image(self):
@@ -481,7 +582,7 @@ class PageTile(tk.Frame):
         self.img_container.config(bg=fill)
         self.lbl_img.config(bg=fill)
         self.bottom_bar.config(bg=bg_bottom)
-        self.lbl_status.config(text=txt, bg=bg_bottom, fg=fg, font=("Inter", size, weight))
+        self.lbl_status.config(text=txt, bg=bg_bottom, fg=fg, font=("Segoe UI Variable Text", size, weight))
         self.btn_rot.config(bg=bg_bottom, fg="white" if selected else COLORS["BLUE"])
 
 # --- WINDOWS ---
@@ -515,20 +616,20 @@ class SettingsWindow(tk.Toplevel):
         
         self.anim_var = tk.BooleanVar(value=ANIMATIONS_ENABLED)
         tk.Checkbutton(container, text="Activar Animaciones", variable=self.anim_var, onvalue=True, offvalue=False, bg=COLORS["BG"], fg=COLORS["TEXT"], selectcolor=COLORS["SURFACE"], command=self.save).pack(anchor="w", padx=10)
-        tk.Label(container, text="Efectos de aparición y transiciones suaves", font=("Inter", 8), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack(anchor="w", padx=30)
+        tk.Label(container, text="Efectos de aparición y transiciones suaves", font=("Segoe UI Variable Text", 8), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack(anchor="w", padx=30)
 
         # Footer
         footer = tk.Frame(container, bg=COLORS["BG"])
         footer.pack(side="bottom", fill="x", pady=20)
         
-        tk.Label(footer, text=f"Versión {updater.config.app_version}", font=("Inter", 8), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack()
+        tk.Label(footer, text=f"Versión {APP_VERSION}", font=("Segoe UI Variable Text", 8), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack()
         RoundedButton(footer, "REINSTALAR APLICACIÓN", command=self.reinstall_app, color=COLORS["ACCENT"], fg_color=COLORS["BLUE"], width=200).pack(pady=5)
         RoundedButton(footer, "CERRAR", command=self.destroy, width=200).pack(pady=10)
 
     def reinstall_app(self):
         """Forces the update dialog even if versions match"""
-        self.destroy() # Close settings before opening update dialog
-        updater.force_reinstall(self.master)
+        messagebox.showinfo("Reinstalación", "Para reinstalar, ejecute 'itmq_updater.py' o descargue la versión más reciente.")
+        # updater.force_reinstall(self.master) # Removed as updater.py is missing
 
     def save(self):
         global CURRENT_THEME, ANIMATIONS_ENABLED, COLORS, UI_SETTINGS
@@ -584,10 +685,10 @@ class ManualInputWindow(tk.Toplevel):
         
         # Helper for custom entries
         def create_field(label, var_ref=None, is_cedula=False):
-            tk.Label(right, text=label, font=("Inter", 9, "bold"), bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(anchor="w")
-            e = tk.Entry(right, font=("Inter", 14), bd=0, bg=COLORS["ACCENT"], fg=COLORS["TEXT"], highlightthickness=1, highlightbackground=COLORS["BORDER"], highlightcolor=COLORS["BLUE"])
+            tk.Label(right, text=label, font=("Segoe UI Variable Text", 9, "bold"), bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(anchor="w")
+            e = tk.Entry(right, font=("Segoe UI Variable Text", 14), bd=0, bg=COLORS["ACCENT"], fg=COLORS["TEXT"], highlightthickness=1, highlightbackground=COLORS["BORDER"], highlightcolor=COLORS["BLUE"])
             if is_cedula:
-                e.config(font=("Inter", 20, "bold"), justify="center")
+                e.config(font=("Segoe UI Variable Text", 20, "bold"), justify="center")
             e.pack(fill="x", pady=(5, 15), ipady=8 if is_cedula else 5)
             return e
 
@@ -607,7 +708,7 @@ class ManualInputWindow(tk.Toplevel):
         RoundedButton(right, "ROTAR DOCUMENTO", command=self.rotate_pdf, color=COLORS["ACCENT"], fg_color=COLORS["BLUE"], width=400).pack(pady=5)
         RoundedButton(right, "CÉDULA GENÉRICA", command=self.generic, color=COLORS["ACCENT"], fg_color=COLORS["TEXT_SECONDARY"], width=400).pack(pady=5)
 
-        tk.Label(right, text="[Click Derecho o ESC para Volver]", font=("Inter", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"]).pack(side="bottom", pady=20)
+        tk.Label(right, text="[Click Derecho o ESC para Volver]", font=("Segoe UI Variable Text", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"]).pack(side="bottom", pady=20)
 
         # Global return removed to avoid accidental submission from other fields
         # self.bind("<Return>", lambda e: self.confirm()) 
@@ -623,7 +724,7 @@ class ManualInputWindow(tk.Toplevel):
                 for grand in child.winfo_children():
                     if isinstance(grand, tk.Label):
                         # Simple heuristic for theme refresh
-                        grand.configure(bg=grand.master["bg"], fg=COLORS["TEXT"] if grand["font"] != ("Inter", 9) else COLORS["TEXT_SECONDARY"])
+                        grand.configure(bg=grand.master["bg"], fg=COLORS["TEXT"] if grand["font"] != ("Segoe UI Variable Text", 9) else COLORS["TEXT_SECONDARY"])
                     elif isinstance(grand, tk.Entry):
                         grand.configure(bg=COLORS["ACCENT"], fg=COLORS["TEXT"], highlightbackground=COLORS["BORDER"], highlightcolor=COLORS["BLUE"])
                     elif isinstance(grand, RoundedButton):
@@ -685,6 +786,8 @@ class EditorWindow(tk.Toplevel):
         self.tiles = []
         self.last_clicked_idx = None
         self.cedula = None
+        self.nombre = None
+        self.apellido = None
         self._focus_mode = "grid" # "grid" or "sidebar"
         self._active_preview = None
         self._preview_is_toggle = False
@@ -932,7 +1035,7 @@ class EditorWindow(tk.Toplevel):
         self.zoom_slider.pack(side="left", padx=15, pady=30)
 
         # TERMINAR PROCESO (Center/Right-ish)
-        self.btn_finish = RoundedButton(self.footer, "TERMINAR PROCESO", command=self.save, color=COLORS["RED"], fg_color="#FFFFFF", width=180)
+        self.btn_finish = RoundedButton(self.footer, "TERMINAR PROCESO", command=self.show_summary, color=COLORS["RED"], fg_color="#FFFFFF", width=180)
         self.btn_finish.pack(side="left", padx=20, pady=22)
 
         # Siguiente Categ >
@@ -1274,7 +1377,7 @@ class EditorWindow(tk.Toplevel):
             l_bg = COLORS["ACCENT"] if is_active_seg else COLORS["Surface_2" if "Surface_2" in COLORS else "BORDER"]
             l_fg = COLORS["BLUE"] if is_active_seg else COLORS["TEXT_SECONDARY"]
             
-            lbl = tk.Label(prog_frame, text=f" {letter} ", font=("Inter", 10, "bold"), bg=l_bg, fg=l_fg, width=3, cursor="hand2")
+            lbl = tk.Label(prog_frame, text=f" {letter} ", font=("Segoe UI Variable Text", 10, "bold"), bg=l_bg, fg=l_fg, width=3, cursor="hand2")
             lbl.pack(side="left", padx=2)
             
             # Bind click to jump to start of that segment
@@ -1319,7 +1422,7 @@ class EditorWindow(tk.Toplevel):
             lbl.pack(side="left", padx=5, fill="both", expand=True)
             
             fg = COLORS["BLUE" if is_current else ("GREEN" if count > 0 else "TEXT")]
-            font = ("Inter", 9, "bold") if is_current else ("Inter", 9)
+            font = ("Segoe UI Variable Text", 9, "bold") if is_current else ("Segoe UI Variable Text", 9)
             lbl.config(font=font, fg=fg)
 
             # Bind click
@@ -1328,7 +1431,7 @@ class EditorWindow(tk.Toplevel):
                 w.bind("<MouseWheel>", self._on_sidebar_scroll)
 
             if count > 0:
-                cnt_lbl = tk.Label(container, text=str(count), font=("Inter", 8, "bold"), bg=c_bg, fg=fg)
+                cnt_lbl = tk.Label(container, text=str(count), font=("Segoe UI Variable Text", 8, "bold"), bg=c_bg, fg=fg)
                 cnt_lbl.pack(side="right", padx=5)
                 cnt_lbl.bind("<Button-1>", lambda e, i=idx: self.go_to(i))
             
@@ -1504,8 +1607,10 @@ class EditorWindow(tk.Toplevel):
     
     def show_summary(self):
         """Displays a summary of classified documents."""
+        if not self.check_cedula_enforcement(): return
+
         summary_win = tk.Toplevel(self)
-        summary_win.title("Confirmación Final")
+        summary_win.title("VERIFICACIÓN FINAL")
         summary_win.state('zoomed')
         summary_win.configure(bg=COLORS["BG"])
         
@@ -1513,15 +1618,19 @@ class EditorWindow(tk.Toplevel):
         header = tk.Frame(summary_win, bg=COLORS["SURFACE"], height=80, padx=40)
         header.pack(fill="x")
         
-        tk.Label(header, text="RESUMEN DE CLASIFICACIÓN", font=FONTS["TITLE"], bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(side="left", pady=20)
+        tk.Label(header, text="VERIFICACIÓN FINAL", font=FONTS["TITLE"], bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(side="left", pady=20)
         
         # Info
-        info_txt = f"{self.apellido} {self.nombre} - {self.cedula}"
-        tk.Label(header, text=info_txt, font=("Inter", 14, "bold"), bg=COLORS["SURFACE"], fg=COLORS["BLUE"]).pack(side="right", pady=20)
+        inf = f"{self.apellido or ''} {self.nombre or ''} - {self.cedula or ''}".strip(" -")
+        tk.Label(header, text=inf, font=("Segoe UI Variable Text", 14, "bold"), bg=COLORS["SURFACE"], fg=COLORS["BLUE"]).pack(side="right", pady=20)
 
-        # Content
-        content = tk.Frame(summary_win, bg=COLORS["BG"])
-        content.pack(fill="both", expand=True, padx=20, pady=20)
+        # Main horizontal container
+        main_body = tk.Frame(summary_win, bg=COLORS["BG"])
+        main_body.pack(fill="both", expand=True)
+
+        # Content (Left Side - Previews)
+        content = tk.Frame(main_body, bg=COLORS["BG"])
+        content.pack(side="left", fill="both", expand=True, padx=20, pady=20)
         
         # Simple scrollable grid
         canvas = tk.Canvas(content, bg=COLORS["BG"], highlightthickness=0)
@@ -1537,20 +1646,48 @@ class EditorWindow(tk.Toplevel):
         canvas.bind("<MouseWheel>", _on_wheel)
         inner.bind("<MouseWheel>", _on_wheel)
 
+        # Sidebar (Right Side - Missing Categories)
+        missing_sidebar = tk.Frame(main_body, bg=COLORS["SURFACE"], width=300, padx=20, pady=20)
+        missing_sidebar.pack(side="right", fill="both")
+        missing_sidebar.pack_propagate(False)
+
+        tk.Label(missing_sidebar, text="CATEGORÍAS FALTANTES", font=("Segoe UI Variable Text", 12, "bold"), bg=COLORS["SURFACE"], fg=COLORS["RED"]).pack(pady=(0, 15))
+        
+        missing_scroll_frame = tk.Frame(missing_sidebar, bg=COLORS["SURFACE"])
+        missing_scroll_frame.pack(fill="both", expand=True)
+        
+        missing_canvas = tk.Canvas(missing_scroll_frame, bg=COLORS["SURFACE"], highlightthickness=0)
+        missing_sb = ttk.Scrollbar(missing_scroll_frame, orient="vertical", command=missing_canvas.yview)
+        missing_inner = tk.Frame(missing_canvas, bg=COLORS["SURFACE"])
+        
+        missing_canvas.configure(yscrollcommand=missing_sb.set)
+        missing_sb.pack(side="right", fill="y")
+        missing_canvas.pack(fill="both", expand=True)
+        missing_canvas.create_window((0,0), window=missing_inner, anchor="nw", width=260)
+
+        missing_list = [name for abbr, name in self.categories if (abbr not in self.results or not self.results[abbr])]
+        if not missing_list:
+            tk.Label(missing_inner, text="¡Ninguna! Todo completo.", font=("Segoe UI Variable Text", 10, "italic"), bg=COLORS["SURFACE"], fg=COLORS["GREEN"]).pack(pady=10)
+        else:
+            for m_name in missing_list:
+                tk.Label(missing_inner, text=f"• {m_name}", font=("Segoe UI Variable Text", 10), bg=COLORS["SURFACE"], fg=COLORS["TEXT"], anchor="w", wraplength=240, justify="left").pack(fill="x", pady=2)
+
+        missing_inner.update_idletasks()
+        missing_canvas.config(scrollregion=missing_canvas.bbox("all"))
+
         # Populate with categories
         r = 0
-        sorted_cats = [c for c in self.categories if c[0] in self.results]
+        sorted_cats = [c for c in self.categories if c[0] in self.results and self.results[c[0]]]
         
         if not sorted_cats:
-             tk.Label(inner, text="No hay categorías seleccionadas.", font=("Inter", 12), bg=COLORS["BG"], fg=COLORS["TEXT"]).pack(pady=50)
+             tk.Label(inner, text="No hay categorías seleccionadas.", font=("Segoe UI Variable Text", 12), bg=COLORS["BG"], fg=COLORS["TEXT"]).pack(pady=50)
 
         for abbr, name in sorted_cats:
-            # pages = sorted(self.results[abbr]) # OLD
-            pages = self.results[abbr] # Keep order
+            pages = self.results[abbr]
             if not pages: continue
             
             # Category Header
-            tk.Label(inner, text=f"{name} ({abbr})", font=("Inter", 11, "bold"), bg=COLORS["BG"], fg=COLORS["TEXT"]).grid(row=r, column=0, sticky="w", padx=10, pady=(20, 5))
+            tk.Label(inner, text=f"{name} ({abbr})", font=("Segoe UI Variable Text", 11, "bold"), bg=COLORS["BG"], fg=COLORS["TEXT"]).grid(row=r, column=0, sticky="w", padx=10, pady=(20, 5))
             r += 1
             
             # Thumbs row
@@ -1578,7 +1715,7 @@ class EditorWindow(tk.Toplevel):
                     lb.pack(side="left", padx=2)
                     lb.bind("<Button-1>", lambda e, a=abbr, x=i: swap_page(a, x, x-1))
                 
-                tk.Label(ctrl, text=str(i+1), font=("Inter", 8, "bold"), bg=COLORS["ACCENT"], fg=COLORS["TEXT"]).pack(side="left", expand=True)
+                tk.Label(ctrl, text=str(i+1), font=("Segoe UI Variable Text", 8, "bold"), bg=COLORS["ACCENT"], fg=COLORS["TEXT"]).pack(side="left", expand=True)
 
                 if i < len(pages) - 1:
                     rb = tk.Label(ctrl, text=">", font=("bold", 8), bg=COLORS["ACCENT"], fg=COLORS["BLUE"], cursor="hand2")
@@ -1586,19 +1723,21 @@ class EditorWindow(tk.Toplevel):
                     rb.bind("<Button-1>", lambda e, a=abbr, x=i: swap_page(a, x, x+1))
 
                 try:
-                    img = self.engine.get_page_preview(p_num, scale=0.3) # Smaller scale to fit controls
-                    l = tk.Label(f, image=img, bg=COLORS["SURFACE"], cursor="hand2")
-                    l.image = img # Keep ref
+                    img_pil = self.engine.get_page_preview(p_num, scale=0.3)
+                    img_tk = ImageTk.PhotoImage(img_pil)
+                    l = tk.Label(f, image=img_tk, bg=COLORS["SURFACE"], cursor="hand2")
+                    l.image = img_tk # Keep ref
                     l.pack()
                     
                     # Zoom bindings
                     l.bind("<Button-3>", lambda e, p=p_num: self.show_summary_zoom(p, "press"))
                     l.bind("<ButtonRelease-3>", lambda e, p=p_num: self.show_summary_zoom(p, "release"))
                     
-                except:
+                except Exception as e:
+                    print(f"Summary preview error: {e}")
                     tk.Label(f, text=f"Pág {p_num+1}", width=10, height=5).pack()
                 
-                tk.Label(f, text=f"Orig: {p_num+1}", font=("Inter", 7), bg=COLORS["SURFACE"]).pack()
+                tk.Label(f, text=f"Orig: {p_num+1}", font=("Segoe UI Variable Text", 7), bg=COLORS["SURFACE"]).pack()
             
             r += 1
 
@@ -1779,7 +1918,8 @@ class EditorWindow(tk.Toplevel):
             if os.path.exists(h_path):
                 with open(h_path, "r") as f: history = json.load(f)
             
-            history.insert(0, {"file": filename, "folder": folder, "cedula": self.cedula, "date": str(fitz.now())})
+            from datetime import datetime
+            history.insert(0, {"file": filename, "folder": folder, "cedula": self.cedula, "date": str(datetime.now())})
             with open(h_path, "w") as f: json.dump(history[:100], f)
         except Exception as e:
             print(f"History log error: {e}")
@@ -1787,13 +1927,16 @@ class EditorWindow(tk.Toplevel):
     def finish_all(self):
         self.progress_win.destroy()
         self.engine.close()
+        import gc
+        gc.collect()
         self.destroy()
         self.on_finish()
 
 class MainApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Intramaq PDF Class")
+        status = itmq_license.get_license_status_text()
+        self.root.title(f"ITMQ-GD v{APP_VERSION} ({status})")
         self.root.state('zoomed')
         self.root.minsize(800, 600)
         self.root.configure(bg=COLORS["BG"])
@@ -1819,9 +1962,9 @@ class MainApp:
         self.btn_load.pack()
         
         # Profile Selector
-        tk.Label(self.container, text="Perfil de clasificación:", font=("Inter", 9), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack(pady=(20, 5))
+        tk.Label(self.container, text="Perfil de clasificación:", font=("Segoe UI Variable Text", 9), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack(pady=(20, 5))
         
-        self.profile_menu = ttk.Combobox(self.container, textvariable=self.selected_profile, values=list(PROFILES.keys()), state="readonly", font=("Inter", 10), width=30)
+        self.profile_menu = ttk.Combobox(self.container, textvariable=self.selected_profile, values=list(PROFILES.keys()), state="readonly", font=("Segoe UI Variable Text", 10), width=30)
         self.profile_menu.pack(pady=5)
         
         # Update button
@@ -1832,7 +1975,7 @@ class MainApp:
         
         self.btn_settings = tk.Button(root, text="⚙️", command=self.open_settings, bd=0, bg=COLORS["BG"], fg=COLORS["TEXT"], font=("Segoe UI", 14), cursor="hand2")
         self.btn_settings.pack(side="top", anchor="nw", padx=20, pady=20)
-        self.lbl_footer = tk.Label(root, text="Tomás Posada Castro - 2026 | v" + updater.config.app_version, font=("Segoe UI", 8), fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
+        self.lbl_footer = tk.Label(root, text="Tomás Posada Castro - 2026 | v" + APP_VERSION, font=("Segoe UI", 8), fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
         self.lbl_footer.pack(side="bottom", pady=15)
         
         # Auto-check for updates on startup (silent)
@@ -1931,13 +2074,11 @@ class MainApp:
     
     def check_updates(self):
         """Manually check for updates."""
-        has_update, data = updater.check_for_updates(silent=False)
-        if has_update:
-            updater.show_update_dialog(self.root, data)
+        messagebox.showinfo("Actualización", "La funcionalidad de actualización automática está desactivada en esta versión.")
     
     def auto_check_updates(self):
         """Auto-check for updates on startup (silent) in background thread."""
-        threading.Thread(target=lambda: updater.auto_check_updates(self.root), daemon=True).start()
+        pass # Disabled without updater module
 
 
     def process_next(self):
@@ -1973,7 +2114,7 @@ class SplashScreen(tk.Toplevel):
         self.attributes("-topmost", True)
         
         try:
-            logo_path = os.path.join(os.path.dirname(__file__), "Intramaq-logo-mail.png")
+            logo_path = os.path.join(os.path.dirname(__file__), "assets", "Intramaq-logo.png")
             if os.path.exists(logo_path):
                 pil_img = Image.open(logo_path)
                 pil_img.thumbnail((450, 250))
@@ -1994,10 +2135,11 @@ class SplashScreen(tk.Toplevel):
         alpha += 0.2 # Faster fade in
         if alpha >= 1.0:
             self.attributes("-alpha", 1.0)
-            self.after(400, self.start_fade_out) # Hold reduced from 800ms to 400ms
+            self.after(400, self.start_fade_out) 
         else:
             self.attributes("-alpha", alpha)
-            self.after(20, lambda: self.fade_in(alpha))
+            # Use a slightly faster interval for smoother fade in
+            self.after(16, lambda: self.fade_in(alpha)) 
 
     def start_fade_out(self):
         self.fade_out(1.0)
@@ -2009,7 +2151,7 @@ class SplashScreen(tk.Toplevel):
             self.on_complete()
         else:
             self.attributes("-alpha", alpha)
-            self.after(20, lambda: self.fade_out(alpha))
+            self.after(16, lambda: self.fade_out(alpha))
 
 def main():
     check_single_instance()
@@ -2031,7 +2173,7 @@ def main():
     # Fallback font handling - MUST be after root creation
     try:
         import tkinter.font as tkfont
-        if "Inter" not in tkfont.families():
+        if "Segoe UI Variable Text" not in tkfont.families():
             global FONTS
             FONTS = {k: ("Segoe UI", v[1], v[2] if len(v)>2 else "normal") for k, v in FONTS.items()}
     except Exception as e:
@@ -2043,7 +2185,7 @@ def main():
         if "--updated" in sys.argv:
             messagebox.showinfo(
                 "Actualización Exitosa", 
-                f"¡La aplicación se ha actualizado correctamente a la versión {updater.config.app_version}!"
+                f"¡La aplicación se ha actualizado correctamente a la versión {APP_VERSION}!"
             )
         MainApp(root)
     
@@ -2058,13 +2200,30 @@ def main():
         return os.path.join(base_path, relative_path)
 
     # Check if logo exists for splash
-    logo_path = resource_path("Intramaq-logo-mail.png")
+    logo_path = resource_path(os.path.join("assets", "Intramaq-logo.png"))
     # Also check if it exists in current dir as fallback for icon
     if not os.path.exists(logo_path):
-         logo_path = "Intramaq-logo-mail.png"
+         logo_path = "Intramaq-logo.png"
          
     logo_exists = os.path.exists(logo_path)
     
+    # 1. Check License first
+    itmq_license.ensure_trial_initiated() # Automatically start 7-day trial if first time
+    
+    # Attempt automatic online activation if not activated
+    if not itmq_license.is_activated():
+        itmq_license.check_online_activation()
+        
+    if not itmq_license.is_activated():
+        root.deiconify() # Show for dialog
+        dialog = LicenseDialog(root)
+        root.wait_window(dialog)
+        if not itmq_license.is_activated():
+            os._exit(0)
+    
+    # 2. Check for updates
+    check_for_updates()
+
     if logo_exists:
         try:
             # Set App Icon
