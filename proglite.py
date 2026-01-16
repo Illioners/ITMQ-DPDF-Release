@@ -85,10 +85,16 @@ def check_for_updates():
         if not os.path.exists(ver_path):
             return
             
-        with open(ver_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            new_version = data.get("version")
-            if new_version and new_version != APP_VERSION:
+        try:
+            with open(ver_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except UnicodeDecodeError:
+            # Fallback for BOM or other encodings
+            with open(ver_path, "r", encoding="utf-8-sig") as f:
+                data = json.load(f)
+                
+        new_version = data.get("version")
+        if new_version and new_version != APP_VERSION:
                 # Ask user to update
                 if messagebox.askyesno("Actualización Disponible", 
                     f"Hay una nueva versión disponible: {new_version}\n¿Desea actualizar ahora?"):

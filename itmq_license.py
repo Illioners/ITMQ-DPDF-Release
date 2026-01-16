@@ -222,15 +222,17 @@ def ensure_trial_initiated():
         return False # License file exists but is invalid/expired
         
     # Generate a trial key for THIS machine
-    hwid = get_machine_id()
-    # User requested 30 days default license
-    trial_key = generate_key("30D")
-    return save_license(trial_key, "30D")
+    # Generate a trial key for THIS machine
+    hwid = get_machine_id() 
+    # Default trial is 7 days
+    trial_key = generate_key("7D")
+    return save_license(trial_key, "7D")
 
 if __name__ == "__main__":
     # Internal Test / Key Gen Tool
     mid = get_machine_id()
     print(f"Machine ID: {mid}")
     print("--- LICENSE KEYS ---")
+    mid = get_machine_id() 
     for d in DURATIONS:
-        print(f"{d}: {generate_key(mid, d)}")
+        print(f"{d}: {generate_key(d)}")
