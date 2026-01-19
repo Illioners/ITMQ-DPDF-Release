@@ -96,7 +96,7 @@ def package_release():
     if os.path.exists(updater_dir):
         zip_name = os.path.join(dist_dir, "ITMQ-Updater")
         print(f"Creating ITMQ-Updater.zip...")
-        shutil.make_archive(zip_name, 'zip', root_dir=dist_dir, base_dir="ITMQ-Updater")
+        shutil.make_archive(zip_name, 'zip', root_dir=updater_dir)
     else:
         print("Error: ITMQ-Updater directory missing in dist!")
 

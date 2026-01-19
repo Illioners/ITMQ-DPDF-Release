@@ -3,7 +3,7 @@
     "release_date": "2026-01-16",
     "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.13/ITMQ-GD.zip",
     "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.13/ITMQ-Updater.zip",
-    "sha256": "E2A7DCED50606BD70ED8D169FBE7A9E21ABC9A5745424FB119036D6085F8B5C7",
+    "sha256": "CA59AA4266E1A63AA0ED85818ECDD823E39AC9EB87617FCB751C82F2214A4E4A",
     "changelog": "Versión 1.4.13: Corrección de errores críticos, protección contra cierres inesperados y mejoras en la estabilidad.",
     "min_version": "1.4.0"
 }
