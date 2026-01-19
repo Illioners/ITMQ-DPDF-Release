@@ -40,14 +40,26 @@ def build():
     ]
     subprocess.check_call(cmd_updater, shell=True)
     
-    # 4. Cleanup AI Trainer (User Request)
+    # 4. Run PyInstaller for Proglite
+    print(f"Building ClasificadorPDF...")
+    cmd_proglite = [
+        "pyinstaller",
+        "build_config/proglite.spec", 
+        "--clean",
+        "--noconfirm", 
+        "--log-level=WARN"
+    ]
+    subprocess.check_call(cmd_proglite, shell=True)
+    
+    # 5. Cleanup AI Trainer (User Request)
     ai_trainer_path = os.path.join("dist", "ITMQ-GD-Suite", "EntrenadorAI.exe")
     if os.path.exists(ai_trainer_path):
         os.remove(ai_trainer_path)
         print("Removed EntrenadorAI.exe (excluded from release)")
 
     print("\n[OK] Build Complete!")
-    print(f"Output: {os.path.abspath('dist/ITMQ-GD-Suite')}")
+    print(f"ITMQ-GD Suite: {os.path.abspath('dist/ITMQ-GD-Suite')}")
+    print(f"ClasificadorPDF: {os.path.abspath('dist/ClasificadorPDF')}")
     print(f"Updater: {os.path.abspath('dist/ITMQ-Updater')}")
 
 if __name__ == "__main__":

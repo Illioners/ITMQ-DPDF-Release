@@ -79,30 +79,30 @@ ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 APP_VERSION = "1.4.13" 
 
 def check_for_updates():
-    """Checks for updates by comparing with version.json or a remote source."""
+    """Checks for updates by fetching version.json from GitHub."""
+    threading.Thread(target=_async_check_updates, daemon=True).start()
+
+def _async_check_updates():
     try:
-        ver_path = os.path.join(os.path.dirname(__file__), "version.json")
-        if not os.path.exists(ver_path):
-            return
+        import urllib.request
+        import json
+        
+        # URL for the version metadata on GitHub
+        url = "https://raw.githubusercontent.com/Illioners/ITMQ-DPDF/main/version.json"
+        
+        req = urllib.request.Request(url, headers={'User-Agent': 'ITMQ-GD-Client'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
             
-        try:
-            with open(ver_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except UnicodeDecodeError:
-            try:
-                # Fallback for BOM or other encodings
-                with open(ver_path, "r", encoding="utf-8-sig") as f:
-                    data = json.load(f)
-            except UnicodeDecodeError:
-                # Fallback for UTF-16 (Common in Windows)
-                with open(ver_path, "r", encoding="utf-16") as f:
-                    data = json.load(f)
-                
         new_version = data.get("version")
         if new_version and new_version != APP_VERSION:
-                # Ask user to update
+            # We use after() to show the message box in the main thread
+            from tkinter import messagebox
+            def _ask_update():
                 if messagebox.askyesno("Actualización Disponible", 
-                    f"Hay una nueva versión disponible: {new_version}\n¿Desea actualizar ahora?"):
+                    f"Hay una nueva versión disponible: {new_version}\n\n"
+                    f"¿Desea actualizar ahora?\n\n"
+                    f"Cambios:\n{data.get('changelog', 'Mejoras generales.')}"):
                     
                     updater_path = os.path.join(os.path.dirname(__file__), "itmq_updater.py")
                     if os.path.exists(updater_path):
@@ -116,6 +116,17 @@ def check_for_updates():
                         ]
                         subprocess.Popen(cmd)
                         os._exit(0)
+            
+            # Since check_for_updates is called before mainloop starts in many cases,
+            # or from threads, we need to be careful with UI.
+            # In ClasiicadorPDF, we can use the root window if it exists.
+            try:
+                # We'll just use a direct call if we are sure we are in main thread or use a generic messagebox
+                # But typically this is called after root initialization.
+                _ask_update()
+            except:
+                pass
+
     except Exception as e:
         print(f"Update check error: {e}")
 

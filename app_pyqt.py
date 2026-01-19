@@ -59,6 +59,9 @@ except ImportError:
         def predict(self, x): return None
         def learn(self, x, y): pass
 
+APP_VERSION = "1.4.13"
+REMOTE_VERSION_URL = "https://raw.githubusercontent.com/Illioners/ITMQ-DPDF/main/version.json"
+
 # ==========================================
 # SETTINGS PERSISTENCE
 # ==========================================
@@ -2079,8 +2082,11 @@ class MainWindow(QMainWindow):
         # Initialize selection
         self._switch_tab(0)
         
-        # Check first run (simplified for demo, usually from user_settings.json)
+        # Check first run
         QTimer.singleShot(2000, self._check_first_run)
+        
+        # Check for updates
+        QTimer.singleShot(3000, self.check_for_updates)
         
         # Initialize Theme Watcher
         self.watcher = ThemeWatcher(self._on_system_theme_changed)
@@ -2130,6 +2136,49 @@ class MainWindow(QMainWindow):
             self._run_tutorial()
             settings["tutorial_completed"] = True
             save_settings(settings)
+
+    def check_for_updates(self):
+        """Checks for updates remotely in a background thread"""
+        threading.Thread(target=self._async_check_updates, daemon=True).start()
+
+    def _async_check_updates(self):
+        try:
+            import urllib.request
+            req = urllib.request.Request(REMOTE_VERSION_URL, headers={'User-Agent': 'ITMQ-GD-PyQt'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                
+            remote_version = data.get("version")
+            if remote_version and remote_version != APP_VERSION:
+                # Signal the UI thread to show the dialog
+                QTimer.singleShot(0, lambda: self._show_update_dialog(data))
+        except Exception as e:
+            print(f"Update check error: {e}")
+
+    def _show_update_dialog(self, data):
+        new_version = data.get("version")
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Actualización Disponible")
+        msg.setText(f"Hay una nueva versión de ITMQ-GD disponible: <b>{new_version}</b>")
+        msg.setInformativeText(f"¿Deseas descargar e instalar la actualización ahora?\n\nCambios:\n{data.get('changelog', 'Nuevas mejoras.')}")
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+        msg.setIcon(QMessageBox.Icon.Information)
+        
+        if msg.exec() == QMessageBox.StandardButton.Yes:
+            updater_path = os.path.join(os.path.dirname(__file__), "itmq_updater.py")
+            if os.path.exists(updater_path):
+                # Launch updater
+                cmd = [
+                    sys.executable, updater_path,
+                    "--target", sys.executable if getattr(sys, 'frozen', False) else sys.argv[0],
+                    "--url", data.get("download_url", ""),
+                    "--version", new_version,
+                    "--sha256", data.get("sha256", "")
+                ]
+                import subprocess
+                subprocess.Popen(cmd)
+                QApplication.quit()
 
     def _run_tutorial(self):
         # Go to home first

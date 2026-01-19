@@ -56,8 +56,23 @@ def build_updater():
         print("Error: ITMQ-Updater.exe was not created!")
         sys.exit(1)
 
+def build_proglite():
+    print_step("4. COMPILING CLASIFICADOR PDF")
+    spec_file = os.path.join("build_config", "proglite.spec")
+    if not os.path.exists(spec_file):
+        print(f"Error: Spec file {spec_file} not found!")
+        sys.exit(1)
+        
+    cmd = ["pyinstaller", spec_file, "--clean", "--noconfirm", "--log-level=WARN"]
+    run_command(cmd)
+    
+    # Verify
+    if not os.path.exists(os.path.join("dist", "ClasificadorPDF", "ClasificadorPDF.exe")):
+        print("Error: ClasificadorPDF.exe was not created!")
+        sys.exit(1)
+
 def build_app():
-    print_step("4. COMPILING MAIN APP (Proglite/ITMQ-GD)")
+    print_step("5. COMPILING MAIN APP (PyQt/ITMQ-GD)")
     spec_file = os.path.join("build_config", "suite.spec")
     if not os.path.exists(spec_file):
         print(f"Error: Spec file {spec_file} not found!")
@@ -73,7 +88,7 @@ def build_app():
         os.remove(ai_trainer)
 
 def package_release():
-    print_step("5. PACKAGING RELEASE (ZIPs)")
+    print_step("6. PACKAGING RELEASE (ZIPs)")
     dist_dir = os.path.abspath("dist")
     
     # --- Updater ZIP ---
@@ -84,6 +99,21 @@ def package_release():
         shutil.make_archive(zip_name, 'zip', root_dir=dist_dir, base_dir="ITMQ-Updater")
     else:
         print("Error: ITMQ-Updater directory missing in dist!")
+
+    # --- ClasificadorPDF ZIP ---
+    lite_dir = os.path.join(dist_dir, "ClasificadorPDF")
+    if os.path.exists(lite_dir):
+        # Add Installer Script for Lite
+        iss_lite_src = os.path.join("build_config", "installer_lite.iss")
+        if os.path.exists(iss_lite_src):
+            shutil.copy(iss_lite_src, lite_dir)
+            print("Included installer_lite.iss")
+        
+        zip_name = os.path.join(dist_dir, "ClasificadorPDF")
+        print(f"Creating ClasificadorPDF.zip...")
+        shutil.make_archive(zip_name, 'zip', root_dir=dist_dir, base_dir="ClasificadorPDF")
+    else:
+        print("Warning: ClasificadorPDF directory missing in dist!")
 
     # --- Main Suite ZIP ---
     suite_dir = os.path.join(dist_dir, "ITMQ-GD-Suite")
@@ -105,8 +135,9 @@ def package_release():
 
     print_step("COMPILATION & PACKAGING COMPLETE")
     print(f"Outputs in: {dist_dir}")
-    print(f"1. ITMQ-GD.zip (Main App + Installer Script)")
-    print(f"2. ITMQ-Updater.zip (Standalone Updater)")
+    print(f"1. ITMQ-GD.zip (PyQt6 App + Installer Script)")
+    print(f"2. ClasificadorPDF.zip (Tkinter App)")
+    print(f"3. ITMQ-Updater.zip (Standalone Updater)")
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -114,6 +145,7 @@ if __name__ == "__main__":
     clean_dirs()
     check_dependencies()
     build_updater()
+    build_proglite()
     build_app()
     package_release()
     
