@@ -11,7 +11,7 @@ def make_zip():
     updater_zip = os.path.join(dist_dir, "ITMQ-Updater")
     if os.path.exists(updater_dist):
         print(f"Zipping Updater to {updater_zip}.zip...")
-        shutil.make_archive(updater_zip, 'zip', root_dir=dist_dir, base_dir="ITMQ-Updater")
+        shutil.make_archive(updater_zip, 'zip', root_dir=updater_dist)
         
     # 2. Include Installer Script in Suite
     installer_src = os.path.join("build_config", "installer.iss")
