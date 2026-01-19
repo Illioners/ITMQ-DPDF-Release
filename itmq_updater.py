@@ -289,14 +289,25 @@ class UpdaterUI(tk.Tk):
             
             logger.info(f"Extracted files to {extract_dir}")
 
-            # 3. Move files one by one to overwrite
-            # We skip the updater itself if it's in the same folder (it shouldn't be as it's running from temp usually)
+            # 3. Check if ZIP has a single root folder (nested structure)
+            extracted_items = os.listdir(extract_dir)
+            if len(extracted_items) == 1 and os.path.isdir(os.path.join(extract_dir, extracted_items[0])):
+                # ZIP has a single root folder, use its contents instead
+                root_folder = os.path.join(extract_dir, extracted_items[0])
+                logger.info(f"Detected nested structure, using contents of: {extracted_items[0]}")
+                source_dir = root_folder
+            else:
+                # ZIP has files/folders at root level
+                source_dir = extract_dir
+
+            # 4. Move files one by one to overwrite
+            # We skip the updater itself if it's in the same folder
             self_exe = os.path.basename(sys.argv[0])
             
-            for item in os.listdir(extract_dir):
+            for item in os.listdir(source_dir):
                 if item == self_exe: continue
                 
-                s = os.path.join(extract_dir, item)
+                s = os.path.join(source_dir, item)
                 d = os.path.join(app_dir, item)
                 
                 try:
@@ -318,14 +329,14 @@ class UpdaterUI(tk.Tk):
                 except Exception as e:
                     logger.warning(f"Failed to move {item}: {e}")
 
-            # 4. Post-replacement cleanup
+            # 5. Post-replacement cleanup
             shutil.rmtree(extract_dir, ignore_errors=True)
             try:
                 os.remove(temp_zip)
             except:
                 pass
             
-            # 5. Unblock all files
+            # 6. Unblock all files
             self.unblock_directory(app_dir)
             
         except Exception as e:
