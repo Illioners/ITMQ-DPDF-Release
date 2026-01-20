@@ -2125,11 +2125,171 @@ class MainApp:
     
     def check_updates(self):
         """Manually check for updates."""
-        messagebox.showinfo("Actualización", "La funcionalidad de actualización automática está desactivada en esta versión.")
+        # Show checking message
+        self.btn_update.config(text="⏳ Verificando...", state="disabled")
+        
+        def _check_thread():
+            try:
+                import urllib.request
+                import json
+                
+                # Fetch version info
+                url = "https://raw.githubusercontent.com/Illioners/ITMQ-DPDF-Release/main/version.json"
+                req = urllib.request.Request(url, headers={'User-Agent': 'ClasificadorPDF-Client'})
+                
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    data = json.loads(response.read().decode('utf-8'))
+                
+                new_version = data.get("version", "")
+                current_version = APP_VERSION
+                
+                # Reset button
+                self.root.after(0, lambda: self.btn_update.config(text="🔄 Buscar Actualizaciones", state="normal"))
+                
+                # Compare versions
+                if not new_version:
+                    self.root.after(0, lambda: messagebox.showerror(
+                        "Error", 
+                        "No se pudo obtener información de la versión."
+                    ))
+                    return
+                
+                if new_version == current_version:
+                    self.root.after(0, lambda: messagebox.showinfo(
+                        "Sin Actualizaciones", 
+                        f"Ya tienes la última versión ({current_version})"
+                    ))
+                    return
+                
+                # New version available
+                changelog = data.get("changelog", "Mejoras y correcciones.")
+                download_url = data.get("download_url", "")
+                sha256 = data.get("sha256", "")
+                
+                def _show_update_prompt():
+                    response = messagebox.askyesno(
+                        "Actualización Disponible",
+                        f"Nueva versión disponible: {new_version}\n"
+                        f"Versión actual: {current_version}\n\n"
+                        f"Cambios:\n{changelog}\n\n"
+                        f"¿Desea descargar e instalar ahora?"
+                    )
+                    
+                    if response:
+                        self._launch_updater(download_url, new_version, sha256)
+                
+                self.root.after(0, _show_update_prompt)
+                
+            except urllib.error.HTTPError as e:
+                self.root.after(0, lambda: self.btn_update.config(text="🔄 Buscar Actualizaciones", state="normal"))
+                if e.code == 404:
+                    self.root.after(0, lambda: messagebox.showerror(
+                        "Error",
+                        "No se encontró el archivo de versión.\n"
+                        "El sistema de actualizaciones no está disponible."
+                    ))
+                else:
+                    self.root.after(0, lambda: messagebox.showerror(
+                        "Error de Red",
+                        f"Error HTTP {e.code}: {e.reason}"
+                    ))
+            except urllib.error.URLError as e:
+                self.root.after(0, lambda: self.btn_update.config(text="🔄 Buscar Actualizaciones", state="normal"))
+                self.root.after(0, lambda: messagebox.showerror(
+                    "Error de Conexión",
+                    "No se pudo conectar al servidor.\n"
+                    "Verifica tu conexión a internet."
+                ))
+            except Exception as e:
+                self.root.after(0, lambda: self.btn_update.config(text="🔄 Buscar Actualizaciones", state="normal"))
+                self.root.after(0, lambda: messagebox.showerror(
+                    "Error",
+                    f"Error al verificar actualizaciones:\n{str(e)}"
+                ))
+        
+        threading.Thread(target=_check_thread, daemon=True).start()
+    
+    def _launch_updater(self, download_url, new_version, sha256):
+        """Launch the updater process."""
+        try:
+            # Check if running from compiled exe
+            if not getattr(sys, 'frozen', False):
+                messagebox.showinfo(
+                    "Actualización",
+                    "La actualización automática solo está disponible\n"
+                    "en la versión compilada del programa."
+                )
+                return
+            
+            # Find updater executable
+            app_dir = os.path.dirname(sys.executable)
+            updater_exe = os.path.join(app_dir, "ITMQ-Updater.exe")
+            
+            if not os.path.exists(updater_exe):
+                messagebox.showerror(
+                    "Error",
+                    "No se encontró ITMQ-Updater.exe\n\n"
+                    f"Buscado en: {updater_exe}\n\n"
+                    "Por favor, descarga la actualización manualmente."
+                )
+                return
+            
+            # Launch updater with proper arguments
+            cmd = [
+                updater_exe,
+                "--target", sys.executable,
+                "--url", download_url,
+                "--version", new_version,
+                "--sha256", sha256,
+                "--restart-args", "--updated"
+            ]
+            
+            subprocess.Popen(cmd)
+            
+            # Close this application
+            os._exit(0)
+            
+        except Exception as e:
+            messagebox.showerror(
+                "Error al Actualizar",
+                f"No se pudo iniciar el actualizador:\n{str(e)}"
+            )
+    
     
     def auto_check_updates(self):
         """Auto-check for updates on startup (silent) in background thread."""
-        pass # Disabled without updater module
+        def _silent_check():
+            try:
+                import urllib.request
+                import json
+                
+                url = "https://raw.githubusercontent.com/Illioners/ITMQ-DPDF-Release/main/version.json"
+                req = urllib.request.Request(url, headers={'User-Agent': 'ClasificadorPDF-Client'})
+                
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    data = json.loads(response.read().decode('utf-8'))
+                
+                new_version = data.get("version", "")
+                
+                if new_version and new_version != APP_VERSION:
+                    # Update button text to notify user
+                    def _notify():
+                        try:
+                            self.btn_update.config(
+                                text=f"🔄 Nueva versión {new_version} disponible",
+                                fg=COLORS["BLUE"],
+                                font=("Segoe UI", 9, "bold")
+                            )
+                        except:
+                            pass  # Ignore if button doesn't exist
+                    
+                    self.root.after(0, _notify)
+                    
+            except Exception:
+                # Silent fail - don't bother user on startup
+                pass
+        
+        threading.Thread(target=_silent_check, daemon=True).start()
 
 
     def process_next(self):
