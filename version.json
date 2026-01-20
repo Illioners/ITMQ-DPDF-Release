@@ -1,9 +1,9 @@
 {
     "version": "1.4.14",
     "release_date": "2026-01-20",
-    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.14/ITMQ-GD.zip",
+    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.14/ClasificadorPDF.zip",
     "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.14/ITMQ-Updater.zip",
-    "sha256": "F2FD8529C44043D6DE189AFE92ACD3E79A3A529EC9EA875157378D13198DB9F0",
-    "changelog": "Versión 1.4.14: Configuración de prueba gratuita iniciando el 18/01/2026 (7 días).",
+    "sha256": "42769ca5027d24876d8685c1289b246c98a97c334448b7031e6502460d505005",
+    "changelog": "Versión 1.4.14: Configuración de prueba gratuita iniciando el 18/01/2026 (7 días). Sistema de actualizaciones reconstruido.",
     "min_version": "1.4.0"
 }
