@@ -2,7 +2,7 @@
 ; Requires Inno Setup 6.x
 
 #define MyAppName "ClasificadorPDF"
-#define MyAppVersion "1.4.13"
+#define MyAppVersion "1.4.16"
 #define MyAppPublisher "Intramaq"
 #define MyAppURL "https://github.com/Illioners/ITMQ-DPDF"
 #define MyAppExeName "ClasificadorPDF.exe"

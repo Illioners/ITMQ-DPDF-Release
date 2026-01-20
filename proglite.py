@@ -76,7 +76,7 @@ CURRENT_THEME = UI_SETTINGS["theme"]
 ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 
 # --- VERSION INFO ---
-APP_VERSION = "1.4.15" 
+APP_VERSION = "1.4.16" 
 
 def check_for_updates():
     """Checks for updates by fetching version.json from GitHub."""
@@ -430,6 +430,35 @@ class RoundedButton(tk.Canvas):
         ]
         return self.create_polygon(points, **kwargs, smooth=True)
 
+class Tooltip:
+    """A simple tooltip class for Tkinter widgets."""
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tip_window = None
+        self.widget.bind("<Enter>", self.show_tip)
+        self.widget.bind("<Leave>", self.hide_tip)
+
+    def show_tip(self, event=None):
+        if self.tip_window or not self.text: return
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 10
+        self.tip_window = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        
+        label = tk.Label(tw, text=self.text, justify='left',
+                         background="#2c3e50", foreground="#ecf0f1",
+                         relief='flat', borderwidth=1,
+                         font=("Segoe UI Variable Text", 9),
+                         padx=8, pady=4)
+        label.pack(ipadx=1)
+
+    def hide_tip(self, event=None):
+        tw = self.tip_window
+        self.tip_window = None
+        if tw: tw.destroy()
+
 class HighResCanvas(tk.Frame):
     def __init__(self, parent, page_obj, page_num=None, engine=None):
         super().__init__(parent, bg=COLORS["BG"])
@@ -485,6 +514,13 @@ class HighResCanvas(tk.Frame):
 
     def refresh_theme(self):
         self.config(bg=COLORS["BG"])
+        self.render_image()
+
+    def _on_zoom_manual(self, factor):
+        """Manual zoom adjustment."""
+        self.zoom *= factor
+        self.zoom = max(0.1, min(5.0, self.zoom))
+        self.render_image()
         self.canvas.config(bg=COLORS["BG"])
         self.render_image()
 
@@ -533,11 +569,22 @@ class PageTile(tk.Frame):
 
     def _handle_right_press(self, e):
         self._right_click_time = time.time()
-        self.on_zoom(self.page_num, mode="press")
+        # Don't show zoom immediately, wait to see if it's a hold
+        self._zoom_job = self.after(300, lambda: self.on_zoom(self.page_num, mode="press"))
 
     def _handle_right_release(self, e):
+        # Cancel the pending zoom job if it hasn't fired yet
+        if hasattr(self, "_zoom_job"):
+            self.after_cancel(self._zoom_job)
+            del self._zoom_job
+            
         duration = time.time() - getattr(self, "_right_click_time", 0)
-        self.on_zoom(self.page_num, mode="release", duration=duration)
+        if duration < 0.3:
+            # Short click -> menu
+            self.show_context_menu(e)
+        else:
+            # Release after hold -> close zoom if it was a hold zoom
+            self.on_zoom(self.page_num, mode="release", duration=duration)
 
     def trigger_render(self, scale=0.25):
         if self.is_rendered and abs(self.last_render_scale - scale) < 0.05: return
@@ -635,6 +682,31 @@ class PageTile(tk.Frame):
         self.bottom_bar.config(bg=bg_bottom)
         self.lbl_status.config(text=txt, bg=bg_bottom, fg=fg, font=("Segoe UI Variable Text", size, weight))
         self.btn_rot.config(bg=bg_bottom, fg="white" if selected else COLORS["BLUE"])
+
+    def show_context_menu(self, event):
+        """Show the right-click context menu."""
+        menu = tk.Menu(self, tearoff=0, bg=COLORS["SURFACE"], fg=COLORS["TEXT"], font=("Segoe UI Variable Text", 10))
+        
+        # Check if parent (EditorWindow) has the needed methods
+        editor = self.winfo_toplevel()
+        # Note: We assume the toplevel is the EditorWindow or has the logic
+        
+        cat_abbr = getattr(editor, "current_category_abbr", None)
+        is_assigned = self.selected # In our context, selected means assigned to current category
+        
+        menu.add_command(label="🔍 Ver en grande", command=lambda: editor.show_zoom(self.page_num, mode="press"))
+        menu.add_command(label="↻ Rotar 90°", command=lambda: self._handle_rotate(None))
+        menu.add_separator()
+        
+        if is_assigned:
+            menu.add_command(label="🔝 Mover al principio", command=lambda: editor.move_page_to_limit(self.page_num, "top"))
+            menu.add_command(label="🔚 Mover al final", command=lambda: editor.move_page_to_limit(self.page_num, "bottom"))
+            menu.add_separator()
+            menu.add_command(label="❌ Quitar de esta categoría", command=lambda: self._handle_click(event))
+        else:
+            menu.add_command(label="✅ Asignar aquí", command=lambda: self._handle_click(event))
+            
+        menu.post(event.x_root, event.y_root)
 
 # --- WINDOWS ---
 class SettingsWindow(tk.Toplevel):
@@ -1024,12 +1096,26 @@ class EditorWindow(tk.Toplevel):
         self.header = tk.Frame(self, bg=COLORS["SURFACE"], height=80, padx=40)
         self.header.pack(fill="x")
         self.header.pack_propagate(False)
-        self.lbl_step = tk.Label(self.header, text="Cargando...", font=FONTS["TITLE"], bg=COLORS["SURFACE"], fg=COLORS["TEXT"])
-        self.lbl_step.pack(side="left", pady=15)
+        # Progress Section
+        self.prog_container = tk.Frame(self.header, bg=COLORS["SURFACE"])
+        self.prog_container.pack(side="left", fill="y", padx=(20, 0))
+        
+        self.lbl_step = tk.Label(self.prog_container, text="Cargando...", font=FONTS["TITLE"], bg=COLORS["SURFACE"], fg=COLORS["TEXT"])
+        self.lbl_step.pack(side="top", anchor="w", pady=(5, 0))
+        
+        self.prog_bar_canvas = tk.Canvas(self.prog_container, width=300, height=6, bg=COLORS["BORDER"], highlightthickness=0)
+        self.prog_bar_canvas.pack(side="top", fill="x", pady=(2, 5))
+        self.prog_fill = self.prog_bar_canvas.create_rectangle(0, 0, 0, 6, fill=COLORS["BLUE"], width=0)
 
         # Settings Button
         self.btn_settings = tk.Button(self.header, text="⚙️", font=("Segoe UI", 16), command=self.open_settings, bg=COLORS["SURFACE"], fg=COLORS["TEXT"], bd=0, cursor="hand2")
-        self.btn_settings.pack(side="right", padx=10)
+        self.btn_settings.pack(side="right", padx=5)
+        Tooltip(self.btn_settings, "Ajustes del programa")
+
+        # Help Button (Keyboard Legend)
+        self.btn_help = tk.Button(self.header, text="❓", font=("Segoe UI", 16), command=self.show_keyboard_guide, bg=COLORS["SURFACE"], fg=COLORS["TEXT"], bd=0, cursor="hand2")
+        self.btn_help.pack(side="right", padx=5)
+        Tooltip(self.btn_help, "Atajos de teclado")
 
         # Main Layout
         self.main_container = tk.Frame(self, bg=COLORS["BG"])
@@ -1075,15 +1161,18 @@ class EditorWindow(tk.Toplevel):
         # << Anterior Segmento
         self.btn_prev_seg = RoundedButton(self.footer, "<< Segmento", command=self.prev_segment, color=COLORS["ACCENT"], fg_color=COLORS["TEXT_SECONDARY"], width=130)
         self.btn_prev_seg.pack(side="left", padx=5, pady=22)
+        Tooltip(self.btn_prev_seg, "Volver al segmento anterior")
 
         # < Anterior Categ
         self.btn_prev = RoundedButton(self.footer, "< Anterior", command=self.prev_step, color=COLORS["ACCENT"], fg_color=COLORS["TEXT_SECONDARY"], width=130)
         self.btn_prev.pack(side="left", padx=5, pady=22)
+        Tooltip(self.btn_prev, "Volver a la categoría anterior (Escape)")
 
         # Zoom Slider
         self.zoom_slider = tk.Scale(self.footer, from_=0.5, to=2.0, orient="horizontal", resolution=0.1, command=self._on_slider_zoom, showvalue=0, bg=COLORS["SURFACE"], highlightthickness=0, bd=0, length=120, activebackground=COLORS["ACCENT"], troughcolor=COLORS["BORDER"])
         self.zoom_slider.set(1.0)
         self.zoom_slider.pack(side="left", padx=15, pady=30)
+        Tooltip(self.zoom_slider, "Ajustar tamaño de vista previa")
 
         # TERMINAR PROCESO (Center/Right-ish)
         self.btn_finish = RoundedButton(self.footer, "TERMINAR PROCESO", command=self.show_summary, color=COLORS["RED"], fg_color="#FFFFFF", width=180)
@@ -1092,10 +1181,12 @@ class EditorWindow(tk.Toplevel):
         # Siguiente Categ >
         self.btn_next = RoundedButton(self.footer, "Siguiente >", command=self.next_step, width=130)
         self.btn_next.pack(side="right", padx=5, pady=20)
+        Tooltip(self.btn_next, "Ir a la siguiente categoría (Enter)")
         
         # Siguiente Segmento >>
         self.btn_next_seg = RoundedButton(self.footer, "Segmento >>", command=self.next_segment, width=130, color=COLORS["BLUE_LIGHT"], fg_color=COLORS["BLUE"])
         self.btn_next_seg.pack(side="right", padx=5, pady=20)
+        Tooltip(self.btn_next_seg, "Saltar al siguiente segmento")
 
         self.canvas.bind("<Configure>", self._on_resize)
         self.canvas.bind("<MouseWheel>", self._on_mousewheel)
@@ -1357,8 +1448,31 @@ class EditorWindow(tk.Toplevel):
         self._active_preview = win = tk.Toplevel(self)
         win.title(f"Aumento - Pág {page_num+1}")
         win.state('zoomed')
+        win.configure(bg=COLORS["BG"])
+        
+        # Toolbar for zoom window
+        toolbar = tk.Frame(win, bg=COLORS["SURFACE"], height=50)
+        toolbar.pack(side="top", fill="x")
+        
         viewer = HighResCanvas(win, self.engine.doc[page_num], page_num, self.engine)
         viewer.pack(fill="both", expand=True)
+        
+        # Tools
+        tk.Label(toolbar, text=f"Página {page_num+1}", font=("Segoe UI Variable Text", 11, "bold"), bg=COLORS["SURFACE"], fg=COLORS["TEXT"]).pack(side="left", padx=20)
+        
+        btn_rot = tk.Button(toolbar, text="↻ Rotar", font=("Segoe UI", 10), command=viewer.rotate_pdf if hasattr(viewer, "rotate_pdf") else lambda: self._rotate_viewer(viewer), bg=COLORS["SURFACE"], fg=COLORS["BLUE"], bd=0, cursor="hand2")
+        btn_rot.pack(side="left", padx=10)
+        
+        tk.Label(toolbar, text="|", fg=COLORS["BORDER"], bg=COLORS["SURFACE"]).pack(side="left")
+        
+        btn_zoom_in = tk.Button(toolbar, text="➕ Zoom", font=("Segoe UI", 10), command=lambda: viewer._on_zoom_manual(1.2), bg=COLORS["SURFACE"], fg=COLORS["TEXT"], bd=0, cursor="hand2")
+        btn_zoom_in.pack(side="left", padx=10)
+        
+        btn_zoom_out = tk.Button(toolbar, text="➖ Zoom", font=("Segoe UI", 10), command=lambda: viewer._on_zoom_manual(0.8), bg=COLORS["SURFACE"], fg=COLORS["TEXT"], bd=0, cursor="hand2")
+        btn_zoom_out.pack(side="left", padx=10)
+        
+        tk.Button(toolbar, text="CERRAR", font=("Segoe UI", 10, "bold"), command=win.destroy, bg=COLORS["SURFACE"], fg=COLORS["RED"], bd=0, cursor="hand2").pack(side="right", padx=20)
+
         # Permite volver (cerrar) con click derecho (toggle manual)
         win.bind("<Button-3>", lambda e: self.show_zoom(None, mode="press"))
         viewer.canvas.bind("<Button-3>", lambda e: self.show_zoom(None, mode="press"))
@@ -1368,11 +1482,28 @@ class EditorWindow(tk.Toplevel):
                 self._active_preview = None
         win.bind("<Destroy>", lambda e: _on_destroy())
 
+    def _rotate_viewer(self, viewer):
+        """Helper to rotate the viewer and refresh."""
+        viewer.engine.rotate_page(viewer.page_num)
+        viewer.render_image()
+        # Find the tile to mark it as needing re-render
+        for t in self.tiles:
+            if t.page_num == viewer.page_num:
+                t.is_rendered = False
+                t.trigger_render()
+                break
+
     def update_step_ui(self):
         abbr, name = self.categories[self.current_idx]
         segment_name = next((s for s, items in self.segments.items() if abbr in items), "Proceso")
         
         self.lbl_step.config(text=f"{segment_name} | {abbr}: {name.upper()}")
+        
+        # Update Visual Progress Bar
+        total = len(self.categories)
+        if total > 0:
+            progress = (self.current_idx + 1) / total
+            self.prog_bar_canvas.coords(self.prog_fill, 0, 0, progress * 300, 6)
         
         selected = self.results.get(abbr, [])
         for t in self.tiles:
@@ -1974,6 +2105,66 @@ class EditorWindow(tk.Toplevel):
             with open(h_path, "w") as f: json.dump(history[:100], f)
         except Exception as e:
             print(f"History log error: {e}")
+
+    def move_page_to_limit(self, page_num, limit):
+        """Moves an assigned page to the beginning or end of its category list."""
+        abbr, _ = self.categories[self.current_idx]
+        if abbr not in self.results: return
+        
+        pages = self.results[abbr]
+        if page_num not in pages: return
+        
+        pages.remove(page_num)
+        if limit == "top":
+            pages.insert(0, page_num)
+        else:
+            pages.append(page_num)
+        
+        self.update_step_ui()
+
+    def show_keyboard_guide(self):
+        """Show a dialog with available keyboard shortcuts."""
+        help_win = tk.Toplevel(self)
+        help_win.title("Guía de Atajos de Teclado")
+        help_win.geometry("450x400")
+        help_win.resizable(False, False)
+        help_win.configure(bg=COLORS["BG"])
+        help_win.transient(self)
+        help_win.grab_set()
+
+        # Center help window
+        x = self.winfo_x() + (self.winfo_width() // 2) - 225
+        y = self.winfo_y() + (self.winfo_height() // 2) - 200
+        help_win.geometry(f"+{x}+{y}")
+
+        header = tk.Frame(help_win, bg=COLORS["BLUE"], height=60)
+        header.pack(fill="x")
+        tk.Label(header, text="Atajos de Teclado", font=("Segoe UI Variable Display", 16, "bold"), bg=COLORS["BLUE"], fg="white").pack(pady=15)
+
+        content = tk.Frame(help_win, bg=COLORS["BG"], padx=30, pady=20)
+        content.pack(fill="both", expand=True)
+
+        shortcuts = [
+            ("Enter", "Siguiente categoría / Terminar"),
+            ("Escape", "Categoría anterior"),
+            ("Flechas", "Navegar entre miniaturas"),
+            ("Espacio", "Seleccionar / Deseleccionar pág."),
+            ("Shift + Click", "Selección múltiple"),
+            ("Ctrl + Z", "Deshacer última acción"),
+            ("Ctrl + A", "Seleccionar todas las visibles"),
+            ("Ctrl + T", "Cambiar entre modo Claro/Oscuro"),
+            ("Click Der.", "Aumento rápido (Lupa)"),
+            ("Scroll", "Navegar verticalmente"),
+            ("Ctrl + Scroll", "Ajustar tamaño de miniaturas")
+        ]
+
+        for key, desc in shortcuts:
+            row = tk.Frame(content, bg=COLORS["BG"])
+            row.pack(fill="x", pady=3)
+            tk.Label(row, text=key, font=("Segoe UI Variable Text", 10, "bold"), bg=COLORS["BG"], fg=COLORS["BLUE"], width=12, anchor="w").pack(side="left")
+            tk.Label(row, text=desc, font=("Segoe UI Variable Text", 10), bg=COLORS["BG"], fg=COLORS["TEXT"], anchor="w").pack(side="left")
+
+        RoundedButton(content, "ENTENDIDO", command=help_win.destroy, width=150).pack(pady=(20, 0))
 
     def finish_all(self):
         self.progress_win.destroy()

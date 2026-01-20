@@ -1,9 +1,9 @@
 {
-    "version": "1.4.15",
+    "version": "1.4.16",
     "release_date": "2026-01-20",
-    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.15/ClasificadorPDF.zip",
-    "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.15/ITMQ-Updater.zip",
-    "sha256": "2fa3a5ae4f81f635b8cb3d72bc46d4eef30bc9cdbd9b3f5a89d1c8edb993f4d8",
-    "changelog": "Versión 1.4.15: Mejoras de confort UI (Tooltips, Atajos, Menú contextual, Barra de progreso).",
+    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.16/ClasificadorPDF.zip",
+    "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.16/ITMQ-Updater.zip",
+    "sha256": "76dc3adf3ce9db0480e6871b89a53bb08fac25a55df47003817310e1792e7895",
+    "changelog": "Versión 1.4.16: Corregido error crítico que impedía cargar las páginas.",
     "min_version": "1.4.0"
 }
