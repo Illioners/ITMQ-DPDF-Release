@@ -76,7 +76,7 @@ CURRENT_THEME = UI_SETTINGS["theme"]
 ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 
 # --- VERSION INFO ---
-APP_VERSION = "1.4.13" 
+APP_VERSION = "1.4.14" 
 
 def check_for_updates():
     """Checks for updates by fetching version.json from GitHub."""
@@ -238,23 +238,52 @@ FONTS = {
 PROFILES = {
     "Gestion Humana": {
         "CATEGORIES": [
-            ("CC", "Cédula"), ("RQ", "Requisición"), ("HVI", "Hoja de vida interna"), 
-            ("CTO", "Contrato laboral"), ("CTOF", "Contrato Firmado"), ("PRE", "Preaviso (Fijo)"), ("EXS", "Otro si (EXS)"),
-            ("ARL", "ARL"), ("FEPS", "Formulario EPS"), ("EPS", "EPS"), ("AFP", "AFP"),
-            ("FCCF", "Formulario CCF"), ("CCF", "CCF"), ("ADRES", "ADRES"), ("RUAF", "RUAF"),
-            ("RC", "Registro Civil"), ("DOCB", "Documentos Beneficiarios"), ("NOIB", "No inclusión"),
-            ("HVE", "Hoja de vida externa"), ("EI", "Entrevista"), ("PSI", "Psicotécnicas"),
-            ("PC", "Perfil de cargo"), ("AUT", "Autorización datos"), ("ANT", "Antecedentes"), 
-            ("CV", "Carnet vacunas"), ("RT", "Registro retefuente"), ("CB", "C. Bancario"), ("LC", "Licencia"),
-            ("CL", "Certificados Laborales"), ("CE", "Certificados Estudios"), ("GEO", "GeoVictoria"), ("PO", "Póliza"),
-            ("APL", "Aceptación laboral"), ("DOC", "Documentos Adicionales")
+            # A. Contrato (Imagen 1)
+            ("CC", "Cédula de ciudadanía"),
+            ("RQ", "Requisición"),
+            ("HVI", "Hoja de Vida Interna"),
+            ("HVE", "Hoja de Vida Externa"),
+            ("CTO", "Contrato"),
+            ("CTOF", "Contrato Firmado"),
+            ("NR", "No Renovación/No Prorroga"),
+            ("PC", "Perfil del Cargo"),
+            ("ATD", "Autorización de Datos"),
+            ("ES", "Exclusión Salarial"),
+            ("DOCB", "Documentos de Beneficiarios"),
+            ("NOIB", "No Inclusión de Beneficiarios"),
+            ("LC", "Licencia de Conducción"),
+            ("CV", "Carnet de Vacunación"),
+            ("ANT", "Antecedentes"),
+            ("EI", "Entrevista de Ingreso"),
+            ("APL", "Aceptación de la Propuesta Laboral"),
+            ("PV", "Póliza de Vida (documento de asegurabilidad)"),
+            ("PSD", "Perfil Socio Demográfico"),
+            ("GEO", "Geovictoria"),
+            
+            # B. Afiliaciones (Imagen 2)
+            ("ARL", "Certificado de Administradora de Riesgos Laborales"),
+            ("FEPS", "Formulario de Entidad Promotora de Salud"),
+            ("EPS", "Certificado de Entidad Promotora de Salud"),
+            ("AFP", "Certificado Administradora de Fondos de Pensiones"),
+            ("FCCF", "Formulario de Caja de Compensación Familiar"),
+            ("CCF", "Certificado Caja de Compensación Familiar"),
+            ("ADRES", "Administradora de recursos SGSSS"),
+            ("RUAF", "Registro Único de Afiliados en Colombia"),
+            
+            # C. Certificaciones (Imagen 3)
+            ("CB", "Certificado Bancario"),
+            ("CE", "Certificado de Estudio"),
+            ("CL", "Certificado Laboral"),
+            ("CF", "Certificado de la funeraria"),
+            
+            # D. Documentos adicionales
+            ("DOC", "Documentos Adicionales")
         ],
         "SEGMENTS": {
-            "A. Contrato y afiliaciones": ["CC", "RQ", "HVI", "CTO", "CTOF", "PRE", "EXS", "ARL", "FEPS", "EPS", "AFP", "FCCF", "CCF", "ADRES", "RUAF", "RC", "DOCB", "NOIB"],
-            "B. Documentos de ingreso": ["HVE", "EI", "PSI", "PC", "AUT", "ANT", "CV", "RT", "CB", "LC"],
-            "C. Certificaciones": ["CL", "CE"],
-            "D. Comunicaciones": ["GEO", "PO", "APL"],
-            "E. Documentos Adicionales": ["DOC"]
+            "A. Contrato": ["CC", "RQ", "HVI", "HVE", "CTO", "CTOF", "NR", "PC", "ATD", "ES", "DOCB", "NOIB", "LC", "CV", "ANT", "EI", "APL", "PV", "PSD", "GEO"],
+            "B. Afiliaciones": ["ARL", "FEPS", "EPS", "AFP", "FCCF", "CCF", "ADRES", "RUAF"],
+            "C. Certificaciones": ["CB", "CE", "CL", "CF"],
+            "D. Documentos adicionales": ["DOC"]
         }
     },
     "Simplificado": {

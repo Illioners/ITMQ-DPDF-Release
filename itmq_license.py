@@ -67,11 +67,16 @@ def get_license_file():
     appdata = os.getenv('LOCALAPPDATA', os.path.expanduser('~'))
     return os.path.join(appdata, "ITMQ-GD", "license.lic") 
 
-def save_license(key, duration_type):
+def save_license(key, duration_type, custom_activation_date=None):
     path = get_license_file()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     
-    activation_date = datetime.now()
+    # Use custom activation date if provided, otherwise use current time
+    if custom_activation_date:
+        activation_date = custom_activation_date
+    else:
+        activation_date = datetime.now()
+    
     days = DURATIONS.get(duration_type, 30)
     expiry_date = activation_date + timedelta(days=days)
     
@@ -222,11 +227,12 @@ def ensure_trial_initiated():
         return False # License file exists but is invalid/expired
         
     # Generate a trial key for THIS machine
-    # Generate a trial key for THIS machine
     hwid = get_machine_id() 
-    # Default trial is 7 days
+    # Default trial is 7 days starting from January 18, 2026
     trial_key = generate_key("7D")
-    return save_license(trial_key, "7D")
+    # Set custom activation date to January 18, 2026
+    trial_start_date = datetime(2026, 1, 18, 0, 0, 0)
+    return save_license(trial_key, "7D", custom_activation_date=trial_start_date)
 
 if __name__ == "__main__":
     # Internal Test / Key Gen Tool

@@ -142,12 +142,26 @@ def package_release():
 if __name__ == "__main__":
     start_time = time.time()
     
+    # Check for --fast flag to skip ITMQ-GD-Suite compilation
+    fast_mode = "--fast" in sys.argv or "--quick" in sys.argv
+    
+    if fast_mode:
+        print("\n" + "="*50)
+        print(" FAST MODE: Skipping ITMQ-GD-Suite compilation")
+        print("="*50 + "\n")
+    
     clean_dirs()
     check_dependencies()
     build_updater()
     build_proglite()
-    build_app()
+    
+    if not fast_mode:
+        build_app()
+    
     package_release()
     
     duration = time.time() - start_time
     print(f"\nDone in {duration:.2f} seconds.")
+    
+    if fast_mode:
+        print("\nNote: ITMQ-GD-Suite was not compiled (fast mode).")
