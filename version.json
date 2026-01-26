@@ -1,9 +1,0 @@
-{
-    "version": "1.4.16",
-    "release_date": "2026-01-20",
-    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.16/ClasificadorPDF.zip",
-    "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.16/ITMQ-Updater.zip",
-    "sha256": "76dc3adf3ce9db0480e6871b89a53bb08fac25a55df47003817310e1792e7895",
-    "changelog": "Versión 1.4.16: Corregido error crítico que impedía cargar las páginas.",
-    "min_version": "1.4.0"
-}
