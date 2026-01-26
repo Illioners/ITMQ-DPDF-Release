@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Nuitka
+*.build/
+*.dist/
+*.onefile-build/
+
+# Local settings
+user_settings.json
+nuitka-crash-report.xml
+
+# Code signing (removed feature)
+*.pfx
+create_cert.ps1
