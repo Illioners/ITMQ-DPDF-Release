@@ -1,9 +1,9 @@
 {
-    "version": "1.4.20",
+    "version": "1.4.21",
     "release_date": "2026-01-26",
-    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.20/ClasificadorPDF.zip",
-    "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.20/ITMQ-Updater.zip",
+    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.21/ClasificadorPDF.zip",
+    "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.21/ITMQ-Updater.zip",
     "sha256": "",
-    "changelog": "Versión 1.4.20: Corrección importante en la detección de actualizaciones. Se ha corregido la URL de verificación.",
+    "changelog": "Versión 1.4.21: Mejora definitiva en el sistema de actualizaciones. Evita falsos positivos por caché del servidor.",
     "min_version": "1.4.0"
 }
