@@ -57,7 +57,7 @@ class UpdaterUI(tk.Tk):
         self.download_url = download_url
         self.version = version
         self.sha256 = sha256
-        self.restart_args = restart_args
+        self.restart_args = restart_args if restart_args is not None else []
         self.cancelled = False
 
         logger.info(f"Updater initialized. Target: {self.target_path}, Version: {self.version}")

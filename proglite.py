@@ -76,7 +76,7 @@ CURRENT_THEME = UI_SETTINGS["theme"]
 ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 
 # --- VERSION INFO ---
-APP_VERSION = "1.4.16" 
+APP_VERSION = "1.4.22" 
 
 def check_for_updates():
     """Checks for updates by fetching version.json from GitHub."""
@@ -88,44 +88,69 @@ def _async_check_updates():
         import json
         
         # URL for the version metadata on GitHub
-        url = "https://raw.githubusercontent.com/Illioners/ITMQ-DPDF/main/version.json"
+        url = "https://raw.githubusercontent.com/Illioners/ITMQ-DPDF-Release/main/version.json"
         
         req = urllib.request.Request(url, headers={'User-Agent': 'ITMQ-GD-Client'})
         with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode('utf-8'))
             
         new_version = data.get("version")
-        if new_version and new_version != APP_VERSION:
-            # We use after() to show the message box in the main thread
-            from tkinter import messagebox
-            def _ask_update():
-                if messagebox.askyesno("Actualización Disponible", 
-                    f"Hay una nueva versión disponible: {new_version}\n\n"
-                    f"¿Desea actualizar ahora?\n\n"
-                    f"Cambios:\n{data.get('changelog', 'Mejoras generales.')}"):
-                    
-                    updater_path = os.path.join(os.path.dirname(__file__), "itmq_updater.py")
-                    if os.path.exists(updater_path):
-                        # Launch updater
-                        cmd = [
-                            sys.executable, updater_path,
-                            "--target", sys.executable if getattr(sys, 'frozen', False) else sys.argv[0],
-                            "--url", data.get("download_url", ""),
-                            "--version", new_version,
-                            "--sha256", data.get("sha256", "")
-                        ]
-                        subprocess.Popen(cmd)
-                        os._exit(0)
-            
-            # Since check_for_updates is called before mainloop starts in many cases,
-            # or from threads, we need to be careful with UI.
-            # In ClasiicadorPDF, we can use the root window if it exists.
+        
+        def parse_version(v):
+            return tuple(map(int, (v.split("."))))
+
+        if new_version:
             try:
-                # We'll just use a direct call if we are sure we are in main thread or use a generic messagebox
-                # But typically this is called after root initialization.
-                _ask_update()
-            except:
-                pass
+                if parse_version(new_version) > parse_version(APP_VERSION):
+                    # We use after() to show the message box in the main thread
+                    from tkinter import messagebox
+                    def _ask_update():
+                        if messagebox.askyesno("Actualización Disponible", 
+                            f"Hay una nueva versión disponible: {new_version}\n\n"
+                            f"¿Desea actualizar ahora?\n\n"
+                            f"Cambios:\n{data.get('changelog', 'Mejoras generales.')}"):
+                            
+                            # Handle Updater Path logic for Frozen vs Dev
+                            if getattr(sys, 'frozen', False):
+                                # Running as compiled exe
+                                base_dir = os.path.dirname(sys.executable)
+                                updater_exe = os.path.join(base_dir, "ITMQ-Updater.exe")
+                                
+                                if os.path.exists(updater_exe):
+                                    # Launch updater exe directly
+                                    cmd = [
+                                        updater_exe,
+                                        "--target", sys.executable,
+                                        "--url", data.get("download_url", ""),
+                                        "--version", new_version,
+                                        "--sha256", data.get("sha256", "")
+                                    ]
+                                    subprocess.Popen(cmd)
+                                    os._exit(0)
+                                else:
+                                    messagebox.showerror("Error", f"No se encontró ITMQ-Updater.exe\n\nBuscado en:\n{updater_exe}\n\nPor favor, descarga la actualización manualmente.")
+                            else:
+                                # Running from source
+                                updater_path = os.path.join(os.path.dirname(__file__), "itmq_updater.py")
+                                if os.path.exists(updater_path):
+                                    cmd = [
+                                        sys.executable, updater_path,
+                                        "--target", sys.argv[0],
+                                        "--url", data.get("download_url", ""),
+                                        "--version", new_version,
+                                        "--sha256", data.get("sha256", "")
+                                    ]
+                                    subprocess.Popen(cmd)
+                                    os._exit(0)
+                    
+                    # Since check_for_updates is called before mainloop starts in many cases,
+                    # or from threads, we need to be careful with UI.
+                    try:
+                        _ask_update()
+                    except:
+                        pass
+            except ValueError:
+                print(f"Version parse error: {new_version} vs {APP_VERSION}")
 
     except Exception as e:
         print(f"Update check error: {e}")
