@@ -194,6 +194,130 @@ class LicenseDialog(tk.Toplevel):
         else:
             messagebox.showerror("Error", "La llave de activación no es válida.")
 
+# --- DOCUMENT TYPE SELECTION DIALOG ---
+class DocumentTypeDialog(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("Seleccionar Tipo de Documento")
+        self.resizable(False, False)
+        self.configure(bg=COLORS["BG"])
+        self.transient(parent)
+        self.grab_set()
+        
+        self.selected_types = []  # Changed to list for multiple selections
+        
+        # Checkbox variables
+        self.var_ingreso = tk.BooleanVar(value=False)
+        self.var_encurso = tk.BooleanVar(value=False)
+        self.var_retiro = tk.BooleanVar(value=False)
+        
+        self.setup_ui()
+        
+        # Auto-adjust size and center after UI is built
+        self.update_idletasks()
+        width = self.winfo_reqwidth()
+        height = self.winfo_reqheight()
+        x = (self.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.winfo_screenheight() // 2) - (height // 2)
+        self.geometry(f"{width}x{height}+{x}+{y}")
+        
+    def setup_ui(self):
+        # Header
+        header = tk.Frame(self, bg=COLORS["BLUE"], height=80)
+        header.pack(fill="x")
+        header.pack_propagate(False)
+        tk.Label(header, text="Tipo de Documento", font=("Segoe UI Variable Display", 18, "bold"), 
+                bg=COLORS["BLUE"], fg="white").pack(pady=25)
+        
+        # Content
+        content = tk.Frame(self, bg=COLORS["BG"], padx=40, pady=30)
+        content.pack(fill="both", expand=True)
+        
+        tk.Label(content, text="Seleccione uno o más tipos de documento:", 
+                font=FONTS["BOLD"], bg=COLORS["BG"], fg=COLORS["TEXT"]).pack(anchor="w", pady=(0, 20))
+        
+        # Buttons container
+        btn_container = tk.Frame(content, bg=COLORS["BG"])
+        btn_container.pack(fill="both", expand=True, pady=10)
+        
+        # Ingreso Checkbox
+        ingreso_frame = tk.Frame(btn_container, bg=COLORS["SURFACE"], highlightthickness=2, 
+                                highlightbackground=COLORS["BORDER"])
+        ingreso_frame.pack(fill="x", pady=8)
+        
+        check_ingreso = tk.Checkbutton(ingreso_frame, text="📥 INGRESO", 
+                               variable=self.var_ingreso,
+                               bg=COLORS["SURFACE"], fg=COLORS["GREEN"], 
+                               font=("Segoe UI Variable Text", 14, "bold"),
+                               selectcolor=COLORS["SURFACE"], activebackground=COLORS["SURFACE"],
+                               padx=20, pady=10, bd=0, cursor="hand2", anchor="w")
+        check_ingreso.pack(fill="x", padx=10, pady=(10, 5))
+        
+        tk.Label(ingreso_frame, text="Documentos de ingreso",
+                font=("Segoe UI Variable Text", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"],
+                anchor="w").pack(padx=35, pady=(0, 10))
+        
+        # En Curso Checkbox
+        encurso_frame = tk.Frame(btn_container, bg=COLORS["SURFACE"], highlightthickness=2,
+                                highlightbackground=COLORS["BORDER"])
+        encurso_frame.pack(fill="x", pady=8)
+        
+        check_encurso = tk.Checkbutton(encurso_frame, text="📋 EN CURSO",
+                               variable=self.var_encurso,
+                               bg=COLORS["SURFACE"], fg=COLORS["BLUE"],
+                               font=("Segoe UI Variable Text", 14, "bold"),
+                               selectcolor=COLORS["SURFACE"], activebackground=COLORS["SURFACE"],
+                               padx=20, pady=10, bd=0, cursor="hand2", anchor="w")
+        check_encurso.pack(fill="x", padx=10, pady=(10, 5))
+        
+        tk.Label(encurso_frame, text="Documentos en proceso",
+                font=("Segoe UI Variable Text", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"],
+                anchor="w").pack(padx=35, pady=(0, 10))
+        
+        # Retiro Checkbox
+        retiro_frame = tk.Frame(btn_container, bg=COLORS["SURFACE"], highlightthickness=2,
+                               highlightbackground=COLORS["BORDER"])
+        retiro_frame.pack(fill="x", pady=8)
+        
+        check_retiro = tk.Checkbutton(retiro_frame, text="📤 RETIRO",
+                              variable=self.var_retiro,
+                              bg=COLORS["SURFACE"], fg=COLORS["RED"],
+                              font=("Segoe UI Variable Text", 14, "bold"),
+                              selectcolor=COLORS["SURFACE"], activebackground=COLORS["SURFACE"],
+                              padx=20, pady=10, bd=0, cursor="hand2", anchor="w")
+        check_retiro.pack(fill="x", padx=10, pady=(10, 5))
+        
+        tk.Label(retiro_frame, text="Documentos de retiro/salida",
+                font=("Segoe UI Variable Text", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"],
+                anchor="w").pack(padx=35, pady=(0, 10))
+        
+        # Action buttons
+        btn_frame = tk.Frame(content, bg=COLORS["BG"])
+        btn_frame.pack(pady=(20, 0), fill="x")
+        
+        tk.Button(btn_frame, text="Cancelar", command=self.destroy,
+                 bg=COLORS["ACCENT"], fg=COLORS["TEXT_SECONDARY"], font=FONTS["MAIN"],
+                 padx=15, pady=8, bd=0, cursor="hand2").pack(side="left")
+        
+        RoundedButton(btn_frame, "CONFIRMAR", command=self.confirm_selection, width=150).pack(side="right")
+    
+    def confirm_selection(self):
+        # Collect selected types
+        selected = []
+        if self.var_ingreso.get():
+            selected.append("Ingreso")
+        if self.var_encurso.get():
+            selected.append("En Curso")
+        if self.var_retiro.get():
+            selected.append("Retiro")
+        
+        if not selected:
+            messagebox.showwarning("Selección Requerida", "Por favor seleccione al menos un tipo de documento.")
+            return
+        
+        self.selected_types = selected
+        self.destroy()
+
 # --- CONFIGURATION & STYLING ---
 THEMES = {
     "light": {
@@ -284,6 +408,37 @@ PROFILES = {
             "B. Afiliaciones": ["ARL", "FEPS", "EPS", "AFP", "FCCF", "CCF", "ADRES", "RUAF"],
             "C. Certificaciones": ["CB", "CE", "CL", "CF"],
             "D. Documentos adicionales": ["DOC"]
+        }
+    },
+    "En Curso": {
+        "CATEGORIES": [
+            ("PD", "Procesos Disciplinarios"),
+            ("TJ", "Tarjetas"),
+            ("ED", "Evaluación Desempeño"),
+            ("PM", "Permiso"),
+            ("VA", "Vacaciones"),
+            ("CCO", "Circulares Colectivas"),
+            ("ADTO", "Autorizaciones de Descuento"),
+            ("SI", "Solicitud Cesantías"),
+            ("IN", "Incapacidades")
+        ],
+        "SEGMENTS": {
+            "Documentos En Curso": ["PD", "TJ", "ED", "PM", "VA", "CCO", "ADTO", "SI", "IN"]
+        }
+    },
+    "Retiro": {
+        "CATEGORIES": [
+            ("LQ", "Liquidación"),
+            ("PZS", "Paz y Salvo"),
+            ("CLA", "Cert Laboral"),
+            ("CCE", "Cert Cesantías"),
+            ("CSO", "Cert Aportes Seguridad Social"),
+            ("RSA", "Renuncia SA"),
+            ("ASA", "Aceptación SA"),
+            ("ACO", "Aut Exámenes Médicos/Term Contrato")
+        ],
+        "SEGMENTS": {
+            "Documentos Retiro": ["LQ", "PZS", "CLA", "CCE", "CSO", "RSA", "ASA", "ACO"]
         }
     },
     "Simplificado": {
@@ -890,15 +1045,28 @@ class ManualInputWindow(tk.Toplevel):
         self.destroy()
 
 class EditorWindow(tk.Toplevel):
-    def __init__(self, parent, file_path, on_finish, profile_name=DEFAULT_PROFILE, override_output_dir=None):
+    def __init__(self, parent, file_path, on_finish, profile_name=DEFAULT_PROFILE, override_output_dir=None, document_type=None, custom_profile=None):
         super().__init__(parent)
         self.profile_name = profile_name
-        self.profile_data = PROFILES.get(profile_name, PROFILES[DEFAULT_PROFILE])
+        
+        # Use custom profile if provided, otherwise load from PROFILES
+        if custom_profile:
+            self.profile_data = custom_profile
+        else:
+            self.profile_data = PROFILES.get(profile_name, PROFILES[DEFAULT_PROFILE])
+        
         self.categories = self.profile_data["CATEGORIES"]
         self.segments = self.profile_data["SEGMENTS"]
         self.override_output_dir = override_output_dir
+        self.document_type = document_type  # Store document type
         
-        self.title(f"Clasificador Pro: {os.path.basename(file_path)} [{profile_name}]")
+        # Build title with document type if provided
+        title_parts = [f"Clasificador Pro: {os.path.basename(file_path)}"]
+        if document_type:
+            title_parts.append(f"[{document_type}]")
+        title_parts.append(f"[{profile_name}]")
+        self.title(" ".join(title_parts))
+
         self.state('zoomed')
         self.configure(bg=COLORS["BG"])
         self.engine = PDFEngine(file_path)
@@ -2185,13 +2353,22 @@ class MainApp:
         self.queue = []
         self.selected_profile = tk.StringVar(value=DEFAULT_PROFILE)
         
+        # Settings Button (Top Left) - Use place to ensure visibility
+        self.btn_settings = tk.Button(root, text="⚙️", command=self.open_settings, bd=0, bg=COLORS["BG"], fg=COLORS["TEXT"], font=("Segoe UI", 14), cursor="hand2")
+        self.btn_settings.place(x=20, y=20)
+        
+        # Footer
+        self.lbl_footer = tk.Label(root, text="ITMQ - 2026 | v" + APP_VERSION, font=("Segoe UI", 8), fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
+        self.lbl_footer.pack(side="bottom", pady=15)
+        
+        # Container
         self.container = tk.Frame(root, bg=COLORS["BG"])
         self.container.pack(expand=True)
         
         self.lbl_title = tk.Label(self.container, text="Digitalizador", font=FONTS["TITLE"], bg=COLORS["BG"], fg=COLORS["TEXT"])
         self.lbl_title.pack()
         
-        self.lbl_sub = tk.Label(self.container, text="Clasificacion de paquetes PDF", font=FONTS["SUBTITLE"], fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
+        self.lbl_sub = tk.Label(self.container, text="Gestor Documental PDF", font=FONTS["SUBTITLE"], fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
         self.lbl_sub.pack(pady=10)
         
         self.area = tk.Frame(self.container, bg=COLORS["SURFACE"], width=450, height=250, highlightthickness=1, highlightbackground=COLORS["BORDER"])
@@ -2203,28 +2380,28 @@ class MainApp:
         self.btn_load = RoundedButton(self.container, "Iniciar Proceso", command=self.select_files, width=300)
         self.btn_load.pack()
         
-        # Profile Selector
-        tk.Label(self.container, text="Perfil de clasificación:", font=("Segoe UI Variable Text", 9), bg=COLORS["BG"], fg=COLORS["TEXT_SECONDARY"]).pack(pady=(20, 5))
-        
-        self.profile_menu = ttk.Combobox(self.container, textvariable=self.selected_profile, values=list(PROFILES.keys()), state="readonly", font=("Segoe UI Variable Text", 10), width=30)
-        self.profile_menu.pack(pady=5)
-        
-        # Update button
+        # Update Button
         self.btn_update = tk.Button(self.container, text="🔄 Buscar Actualizaciones", command=self.check_updates, 
                                      font=("Segoe UI", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"], 
                                      bd=0, cursor="hand2", pady=5)
-        self.btn_update.pack(pady=5)
-        
-        self.btn_settings = tk.Button(root, text="⚙️", command=self.open_settings, bd=0, bg=COLORS["BG"], fg=COLORS["TEXT"], font=("Segoe UI", 14), cursor="hand2")
-        self.btn_settings.pack(side="top", anchor="nw", padx=20, pady=20)
-        self.lbl_footer = tk.Label(root, text="Tomás Posada Castro - 2026 | v" + APP_VERSION, font=("Segoe UI", 8), fg=COLORS["TEXT_SECONDARY"], bg=COLORS["BG"])
-        self.lbl_footer.pack(side="bottom", pady=15)
+        self.btn_update.pack(pady=10)
         
         # Auto-check for updates on startup (silent)
         self.root.after(2000, self.auto_check_updates)
 
     def open_settings(self):
         SettingsWindow(self.root, self.toggle_theme)
+
+    def check_updates(self):
+        """Manually triggered update check"""
+        check_for_updates()
+    
+    def auto_check_updates(self):
+        """Auto-check for updates on startup (silent)"""
+        try:
+            check_for_updates()
+        except Exception as e:
+            print(f"Auto update check failed: {e}")
 
     def toggle_theme(self):
         global COLORS, CURRENT_THEME
@@ -2251,250 +2428,118 @@ class MainApp:
 
     def select_files(self):
         paths = filedialog.askopenfilenames(filetypes=[("PDF", "*.pdf")])
-        if paths:
-            # If multiple files selected, ask if they're from one person
-            if len(paths) > 1:
-                single_person = messagebox.askyesno(
-                    "Tipo de Documentos",
-                    "¿Los documentos seleccionados son de una sola persona?\n\nSí = Unir PDFs y separar páginas\nNo = Procesar cada PDF por separado"
-                )
-                
-                if single_person:
-                    # Merge all PDFs into one
-                    merged_path = self.merge_pdfs(list(paths))
-                    if merged_path:
-                        # Pass origin directory as override
-                        origin_dir = os.path.dirname(paths[0])
-                        self.queue.append((merged_path, origin_dir))
-                else:
-                    # Add each PDF separately -> (path, None)
-                    for p in paths:
-                        self.queue.append((p, None))
-            else:
-                # Single file -> (path, None)
-                self.queue.append((paths[0], None))
-            
-            self.process_next()
-    
-    def merge_pdfs(self, paths):
-        """Merge multiple PDFs into a single temporary PDF."""
-        try:
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            temp_dir = os.path.join(APP_DATA_DIR, "Temp_PDF_Merged")
-            os.makedirs(temp_dir, exist_ok=True)
-            
-            # merged_name = f"Merged_{timestamp}.pdf"
-            # Use name of first file
-            first_name = os.path.splitext(os.path.basename(paths[0]))[0]
-            merged_name = f"{first_name}.pdf"
-            merged_path = os.path.join(temp_dir, merged_name)
-            
-            # Create merged document
-            merged_doc = fitz.open()
-            
-            for pdf_path in paths:
-                try:
-                    doc = fitz.open(pdf_path)
-                    merged_doc.insert_pdf(doc)
-                    doc.close()
-                except Exception as e:
-                    print(f"Error merging {pdf_path}: {e}")
-            
-            # Get page count before closing
-            total_pages = merged_doc.page_count
-            
-            merged_doc.save(merged_path)
-            merged_doc.close()
-            
-            messagebox.showinfo("Éxito", f"Se unieron {len(paths)} archivos PDF.\nTotal de páginas: {total_pages}")
-            return merged_path
-            
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudieron unir los PDFs: {e}")
-            return None
-    
-    def check_updates(self):
-        """Manually check for updates."""
-        # Show checking message
-        self.btn_update.config(text="⏳ Verificando...", state="disabled")
+        if not paths: return
+
+        # Show document type selection dialog
+        doc_type_dialog = DocumentTypeDialog(self.root)
+        self.root.wait_window(doc_type_dialog)
         
-        def _check_thread():
-            try:
-                import urllib.request
-                import json
-                
-                # Fetch version info
-                url = "https://raw.githubusercontent.com/Illioners/ITMQ-DPDF-Release/main/version.json"
-                req = urllib.request.Request(url, headers={'User-Agent': 'ClasificadorPDF-Client'})
-                
-                with urllib.request.urlopen(req, timeout=10) as response:
-                    data = json.loads(response.read().decode('utf-8'))
-                
-                new_version = data.get("version", "")
-                current_version = APP_VERSION
-                
-                # Reset button
-                self.root.after(0, lambda: self.btn_update.config(text="🔄 Buscar Actualizaciones", state="normal"))
-                
-                # Compare versions
-                if not new_version:
-                    self.root.after(0, lambda: messagebox.showerror(
-                        "Error", 
-                        "No se pudo obtener información de la versión."
-                    ))
-                    return
-                
-                if new_version == current_version:
-                    self.root.after(0, lambda: messagebox.showinfo(
-                        "Sin Actualizaciones", 
-                        f"Ya tienes la última versión ({current_version})"
-                    ))
-                    return
-                
-                # New version available
-                changelog = data.get("changelog", "Mejoras y correcciones.")
-                download_url = data.get("download_url", "")
-                sha256 = data.get("sha256", "")
-                
-                def _show_update_prompt():
-                    response = messagebox.askyesno(
-                        "Actualización Disponible",
-                        f"Nueva versión disponible: {new_version}\n"
-                        f"Versión actual: {current_version}\n\n"
-                        f"Cambios:\n{changelog}\n\n"
-                        f"¿Desea descargar e instalar ahora?"
-                    )
-                    
-                    if response:
-                        self._launch_updater(download_url, new_version, sha256)
-                
-                self.root.after(0, _show_update_prompt)
-                
-            except urllib.error.HTTPError as e:
-                self.root.after(0, lambda: self.btn_update.config(text="🔄 Buscar Actualizaciones", state="normal"))
-                if e.code == 404:
-                    self.root.after(0, lambda: messagebox.showerror(
-                        "Error",
-                        "No se encontró el archivo de versión.\n"
-                        "El sistema de actualizaciones no está disponible."
-                    ))
-                else:
-                    self.root.after(0, lambda: messagebox.showerror(
-                        "Error de Red",
-                        f"Error HTTP {e.code}: {e.reason}"
-                    ))
-            except urllib.error.URLError as e:
-                self.root.after(0, lambda: self.btn_update.config(text="🔄 Buscar Actualizaciones", state="normal"))
-                self.root.after(0, lambda: messagebox.showerror(
-                    "Error de Conexión",
-                    "No se pudo conectar al servidor.\n"
-                    "Verifica tu conexión a internet."
-                ))
-            except Exception as e:
-                self.root.after(0, lambda: self.btn_update.config(text="🔄 Buscar Actualizaciones", state="normal"))
-                self.root.after(0, lambda: messagebox.showerror(
-                    "Error",
-                    f"Error al verificar actualizaciones:\n{str(e)}"
-                ))
+        # If user cancelled the dialog, abort
+        if not doc_type_dialog.selected_types:
+            return
         
-        threading.Thread(target=_check_thread, daemon=True).start()
-    
-    def _launch_updater(self, download_url, new_version, sha256):
-        """Launch the updater process."""
-        try:
-            # Check if running from compiled exe
-            if not getattr(sys, 'frozen', False):
-                messagebox.showinfo(
-                    "Actualización",
-                    "La actualización automática solo está disponible\n"
-                    "en la versión compilada del programa."
-                )
-                return
-            
-            # Find updater executable
-            app_dir = os.path.dirname(sys.executable)
-            updater_exe = os.path.join(app_dir, "ITMQ-Updater.exe")
-            
-            if not os.path.exists(updater_exe):
-                messagebox.showerror(
-                    "Error",
-                    "No se encontró ITMQ-Updater.exe\n\n"
-                    f"Buscado en: {updater_exe}\n\n"
-                    "Por favor, descarga la actualización manualmente."
-                )
-                return
-            
-            # Launch updater with proper arguments
-            cmd = [
-                updater_exe,
-                "--target", sys.executable,
-                "--url", download_url,
-                "--version", new_version,
-                "--sha256", sha256,
-                "--restart-args", "--updated"
-            ]
-            
-            subprocess.Popen(cmd)
-            
-            # Close this application
-            os._exit(0)
-            
-        except Exception as e:
-            messagebox.showerror(
-                "Error al Actualizar",
-                f"No se pudo iniciar el actualizador:\n{str(e)}"
+        # Join multiple types with ' + ' separator
+        selected_doc_type = " + ".join(doc_type_dialog.selected_types)
+
+        # If multiple files selected, ask if they're from one person
+        if len(paths) > 1:
+            single_person = messagebox.askyesno(
+                "Tipo de Documentos",
+                "¿Los documentos seleccionados son de una sola persona?\n\nSí = Unir PDFs y separar páginas\nNo = Procesar cada PDF por separado"
             )
-    
-    
-    def auto_check_updates(self):
-        """Auto-check for updates on startup (silent) in background thread."""
-        def _silent_check():
-            try:
-                import urllib.request
-                import json
-                
-                url = "https://raw.githubusercontent.com/Illioners/ITMQ-DPDF-Release/main/version.json"
-                req = urllib.request.Request(url, headers={'User-Agent': 'ClasificadorPDF-Client'})
-                
-                with urllib.request.urlopen(req, timeout=5) as response:
-                    data = json.loads(response.read().decode('utf-8'))
-                
-                new_version = data.get("version", "")
-                
-                if new_version and new_version != APP_VERSION:
-                    # Update button text to notify user
-                    def _notify():
-                        try:
-                            self.btn_update.config(
-                                text=f"🔄 Nueva versión {new_version} disponible",
-                                fg=COLORS["BLUE"],
-                                font=("Segoe UI", 9, "bold")
-                            )
-                        except:
-                            pass  # Ignore if button doesn't exist
-                    
-                    self.root.after(0, _notify)
-                    
-            except Exception:
-                # Silent fail - don't bother user on startup
-                pass
+            
+            if single_person:
+                # Merge all PDFs into one
+                merged_path = self.merge_pdfs(list(paths))
+                if merged_path:
+                    # Pass origin directory as override and document type
+                    origin_dir = os.path.dirname(paths[0])
+                    self.queue.append((merged_path, origin_dir, selected_doc_type))
+            else:
+                # Add each PDF separately -> (path, None, doc_type)
+                for p in paths:
+                    self.queue.append((p, None, selected_doc_type))
+        else:
+            # Single file -> (path, None, doc_type)
+            self.queue.append((paths[0], None, selected_doc_type))
         
-        threading.Thread(target=_silent_check, daemon=True).start()
+        self.process_next()
 
-
+    
     def process_next(self):
         if self.queue:
             item = self.queue.pop(0)
-            # Handle both string (old behavior safety) and tuple
             if isinstance(item, tuple):
-                path, override = item
+                # Handle both old 2-tuple and new 3-tuple formats
+                if len(item) == 3:
+                    path, override, doc_type = item
+                else:
+                    path, override = item
+                    doc_type = None
             else:
-                path, override = item, None
+                path, override, doc_type = item, None, None
+            
+            # Determine profile based on document type
+            profile_to_use = self.selected_profile.get()
+            custom_profile_data = None
+            
+            if doc_type:
+                # Parse selected types
+                selected_types = [t.strip() for t in doc_type.split('+')]
                 
-            EditorWindow(self.root, path, self.process_next, profile_name=self.selected_profile.get(), override_output_dir=override)
+                # Single type selection - use specific profile
+                if len(selected_types) == 1:
+                    if "En Curso" in selected_types:
+                        profile_to_use = "En Curso"
+                    elif "Retiro" in selected_types:
+                        profile_to_use = "Retiro"
+                    elif "Ingreso" in selected_types:
+                        profile_to_use = "Gestion Humana"
+                
+                # Multiple types - create combined profile
+                elif len(selected_types) > 1:
+                    combined_categories = []
+                    combined_segments = {}
+                    
+                    for doc_type_name in selected_types:
+                        if doc_type_name == "Ingreso":
+                            profile = PROFILES["Gestion Humana"]
+                        elif doc_type_name == "En Curso":
+                            profile = PROFILES["En Curso"]
+                        elif doc_type_name == "Retiro":
+                            profile = PROFILES["Retiro"]
+                        else:
+                            continue
+                        
+                        # Add categories (avoid duplicates)
+                        for cat in profile["CATEGORIES"]:
+                            if cat not in combined_categories:
+                                combined_categories.append(cat)
+                        
+                        # Add segments
+                        for seg_name, seg_cats in profile["SEGMENTS"].items():
+                            # Prefix segment name with document type for clarity
+                            prefixed_seg_name = f"{doc_type_name} - {seg_name}"
+                            combined_segments[prefixed_seg_name] = seg_cats
+                    
+                    # Create custom profile
+                    custom_profile_data = {
+                        "CATEGORIES": combined_categories,
+                        "SEGMENTS": combined_segments
+                    }
+                    profile_to_use = f"Combinado ({doc_type})"
+            
+            # Pass custom profile data if created
+            if custom_profile_data:
+                EditorWindow(self.root, path, self.process_next, profile_name=profile_to_use, 
+                             override_output_dir=override, document_type=doc_type, 
+                             custom_profile=custom_profile_data)
+            else:
+                EditorWindow(self.root, path, self.process_next, profile_name=profile_to_use, 
+                             override_output_dir=override, document_type=doc_type)
         else:
             messagebox.showinfo("Éxito", "Todos los archivos han sido procesados.")
+
 
 class SplashScreen(tk.Toplevel):
     def __init__(self, parent, on_complete):

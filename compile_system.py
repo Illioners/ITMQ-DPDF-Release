@@ -103,11 +103,11 @@ def package_release():
     # --- ClasificadorPDF ZIP ---
     lite_dir = os.path.join(dist_dir, "ClasificadorPDF")
     if os.path.exists(lite_dir):
-        # Add Installer Script for Lite
-        iss_lite_src = os.path.join("build_config", "installer_lite.iss")
-        if os.path.exists(iss_lite_src):
-            shutil.copy(iss_lite_src, lite_dir)
-            print("Included installer_lite.iss")
+        # Add Installer Script for Lite - DISABLED
+        # iss_lite_src = os.path.join("build_config", "installer_lite.iss")
+        # if os.path.exists(iss_lite_src):
+        #     shutil.copy(iss_lite_src, lite_dir)
+        #     print("Included installer_lite.iss")
         
         zip_name = os.path.join(dist_dir, "ClasificadorPDF")
         print(f"Creating ClasificadorPDF.zip...")
