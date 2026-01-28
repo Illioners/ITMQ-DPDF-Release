@@ -1,9 +1,9 @@
 {
-    "version": "1.4.23",
+    "version": "1.4.24",
     "release_date": "2026-01-28",
-    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.23/ClasificadorPDF.zip",
-    "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.23/ITMQ-Updater.zip",
-    "sha256": "7631bc5b401dd4fdf5abb0c8bf883c1dbc1ebede1ddc5cafa8691362c6c896f3",
-    "changelog": "Versión 1.4.23: Extensión de licencia + Corrección de recorte en vistas previas.",
+    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.24/ClasificadorPDF.zip",
+    "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.24/ITMQ-Updater.zip",
+    "sha256": "6063e6c04a057ab657e7863a7405da7c1d9436e1848cc0a19be2307924862e78",
+    "changelog": "Versión 1.4.24: Licencia extendida + Correcciones de intérprete Python y vistas previas.",
     "min_version": "1.4.0"
 }
