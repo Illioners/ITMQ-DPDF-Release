@@ -76,7 +76,7 @@ CURRENT_THEME = UI_SETTINGS["theme"]
 ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 
 # --- VERSION INFO ---
-APP_VERSION = "1.4.26" 
+APP_VERSION = "1.4.27" 
 
 def check_for_updates():
     """Checks for updates by fetching version.json from GitHub."""

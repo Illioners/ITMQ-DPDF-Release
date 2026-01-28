@@ -429,10 +429,14 @@ class ApplicationManager(tk.Tk):
                 raise Exception("SHA256 mismatch - file corrupted")
             self.log("Verification successful")
             
-            # Extract
+            # Extract (skip manager and updater)
             self.log("Installing update...")
             with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
-                zip_ref.extractall(APP_DIR)
+                for member in zip_ref.namelist():
+                    # Skip manager and updater to avoid access denied errors
+                    if member.lower() in ['itmq-manager.exe', 'itmq-updater.exe']:
+                        continue
+                    zip_ref.extract(member, APP_DIR)
             
             # Save version
             with open(os.path.join(APP_DIR, 'version.txt'), 'w') as f:
@@ -485,7 +489,11 @@ class ApplicationManager(tk.Tk):
             self.log("Extracting cached files...")
             
             with zipfile.ZipFile(cached_file, 'r') as zip_ref:
-                zip_ref.extractall(APP_DIR)
+                for member in zip_ref.namelist():
+                    # Skip manager and updater to avoid access denied errors
+                    if member.lower() in ['itmq-manager.exe', 'itmq-updater.exe']:
+                        continue
+                    zip_ref.extract(member, APP_DIR)
             
             self.log("Repair completed successfully!")
             self.update_status("Repaired", COLORS["GREEN"])
@@ -544,16 +552,31 @@ class ApplicationManager(tk.Tk):
                 raise Exception("SHA256 mismatch - file corrupted")
             self.log("Verification successful")
             
-            # Clean install directory
+            # Clean install directory (except manager files)
             if os.path.exists(APP_DIR):
                 self.log("Removing old installation...")
-                shutil.rmtree(APP_DIR)
+                for item in os.listdir(APP_DIR):
+                    item_path = os.path.join(APP_DIR, item)
+                    # Skip manager and updater to avoid access denied errors
+                    if item.lower() in ['itmq-manager.exe', 'itmq-updater.exe']:
+                        continue
+                    try:
+                        if os.path.isfile(item_path):
+                            os.remove(item_path)
+                        elif os.path.isdir(item_path):
+                            shutil.rmtree(item_path)
+                    except Exception as e:
+                        self.log(f"Warning: Could not remove {item}: {e}")
             
             # Extract
             self.log("Installing application...")
             os.makedirs(APP_DIR, exist_ok=True)
             with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
-                zip_ref.extractall(APP_DIR)
+                for member in zip_ref.namelist():
+                    # Skip manager and updater from zip to avoid conflicts
+                    if member.lower() in ['itmq-manager.exe', 'itmq-updater.exe']:
+                        continue
+                    zip_ref.extract(member, APP_DIR)
             
             # Save version
             with open(os.path.join(APP_DIR, 'version.txt'), 'w') as f:
