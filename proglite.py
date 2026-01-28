@@ -76,7 +76,7 @@ CURRENT_THEME = UI_SETTINGS["theme"]
 ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 
 # --- VERSION INFO ---
-APP_VERSION = "1.4.25" 
+APP_VERSION = "1.4.26" 
 
 def check_for_updates():
     """Checks for updates by fetching version.json from GitHub."""
@@ -1042,7 +1042,7 @@ class PageTile(tk.Frame):
                                font=("Segoe UI Variable Text", 24), 
                                bg=COLORS["SURFACE"], fg=COLORS["TEXT_TERTIARY"], 
                                cursor="hand2")
-        self.lbl_img.pack(expand=True, fill="both")
+        self.lbl_img.pack(expand=True)  # Center without filling
         
         # Bottom bar with modern design
         self.bottom_bar = tk.Frame(self.card, bg=COLORS["SURFACE"], height=40)
