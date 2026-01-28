@@ -1142,7 +1142,29 @@ class PageTile(tk.Frame):
     def _apply_image(self, img_pil):
         def _update():
             if not self.winfo_exists(): return
-            self.tk_img = ImageTk.PhotoImage(img_pil)
+            
+            # Get container size
+            container_width = 170
+            container_height = 220
+            
+            # Calculate scaling to fit within container while maintaining aspect ratio
+            img_width, img_height = img_pil.size
+            
+            # Calculate scale factors for both dimensions
+            scale_w = container_width / img_width
+            scale_h = container_height / img_height
+            
+            # Use the smaller scale to ensure the image fits completely
+            scale = min(scale_w, scale_h)
+            
+            # Calculate new dimensions
+            new_width = int(img_width * scale)
+            new_height = int(img_height * scale)
+            
+            # Resize the image with high-quality resampling
+            img_resized = img_pil.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            
+            self.tk_img = ImageTk.PhotoImage(img_resized)
             self.lbl_img.config(image=self.tk_img, text="")
         self.after(0, _update)
 
