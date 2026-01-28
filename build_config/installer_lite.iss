@@ -2,7 +2,7 @@
 ; Requires Inno Setup 6.x
 
 #define MyAppName "ClasificadorPDF"
-#define MyAppVersion "1.4.24"
+#define MyAppVersion "1.4.25"
 #define MyAppPublisher "Intramaq"
 #define MyAppURL "https://github.com/Illioners/ITMQ-DPDF"
 #define MyAppExeName "ClasificadorPDF.exe"
@@ -45,8 +45,10 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 [Files]
 ; Main application - Single onefile executable
 Source: "..\dist\ClasificadorPDF.exe"; DestDir: "{app}"; Flags: ignoreversion
-; Include Updater (Separate build)
-Source: "..\dist\ITMQ-Updater\ITMQ-Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
+; Include Manager (Application Manager)
+Source: "..\dist\ITMQ-Manager.exe"; DestDir: "{app}"; Flags: ignoreversion
+; Include Updater (Legacy - onefile)
+Source: "..\dist\ITMQ-Updater.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; VC++ Redistributable (if present)
 Source: "..\installer\prerequisites\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
 
