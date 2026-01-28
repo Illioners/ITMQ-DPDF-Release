@@ -76,7 +76,7 @@ CURRENT_THEME = UI_SETTINGS["theme"]
 ANIMATIONS_ENABLED = UI_SETTINGS["animations"]
 
 # --- VERSION INFO ---
-APP_VERSION = "1.4.22" 
+APP_VERSION = "1.4.23" 
 
 def check_for_updates():
     """Checks for updates by fetching version.json from GitHub."""
@@ -231,145 +231,285 @@ class DocumentTypeDialog(tk.Toplevel):
         
         self.selected_types = []  # Changed to list for multiple selections
         
-        # Checkbox variables
-        self.var_ingreso = tk.BooleanVar(value=False)
-        self.var_encurso = tk.BooleanVar(value=False)
-        self.var_retiro = tk.BooleanVar(value=False)
+        # Track selection state
+        self.selections = {
+            "Ingreso": False,
+            "En Curso": False,
+            "Retiro": False
+        }
         
         self.setup_ui()
         
         # Auto-adjust size and center after UI is built
         self.update_idletasks()
-        width = self.winfo_reqwidth()
+        width = 550  # Fixed width for better layout
         height = self.winfo_reqheight()
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         y = (self.winfo_screenheight() // 2) - (height // 2)
         self.geometry(f"{width}x{height}+{x}+{y}")
         
     def setup_ui(self):
-        # Header
-        header = tk.Frame(self, bg=COLORS["BLUE"], height=80)
+        # Header with gradient effect
+        header = tk.Frame(self, bg=COLORS["BLUE"], height=100)
         header.pack(fill="x")
         header.pack_propagate(False)
-        tk.Label(header, text="Tipo de Documento", font=("Segoe UI Variable Display", 18, "bold"), 
-                bg=COLORS["BLUE"], fg="white").pack(pady=25)
+        
+        tk.Label(header, text="📄", font=("Segoe UI", 32), 
+                bg=COLORS["BLUE"], fg="white").pack(pady=(15, 0))
+        tk.Label(header, text="Tipo de Documento", 
+                font=("Segoe UI Variable Display", 20, "bold"), 
+                bg=COLORS["BLUE"], fg="white").pack(pady=(5, 15))
         
         # Content
-        content = tk.Frame(self, bg=COLORS["BG"], padx=40, pady=30)
+        content = tk.Frame(self, bg=COLORS["BG"], padx=30, pady=30)
         content.pack(fill="both", expand=True)
         
         tk.Label(content, text="Seleccione uno o más tipos de documento:", 
-                font=FONTS["BOLD"], bg=COLORS["BG"], fg=COLORS["TEXT"]).pack(anchor="w", pady=(0, 20))
+                font=("Segoe UI Variable Text", 11), bg=COLORS["BG"], 
+                fg=COLORS["TEXT"]).pack(anchor="w", pady=(0, 20))
         
-        # Buttons container
-        btn_container = tk.Frame(content, bg=COLORS["BG"])
-        btn_container.pack(fill="both", expand=True, pady=10)
+        # Cards container
+        cards_container = tk.Frame(content, bg=COLORS["BG"])
+        cards_container.pack(fill="both", expand=True, pady=10)
         
-        # Ingreso Checkbox
-        ingreso_frame = tk.Frame(btn_container, bg=COLORS["SURFACE"], highlightthickness=2, 
-                                highlightbackground=COLORS["BORDER"])
-        ingreso_frame.pack(fill="x", pady=8)
+        # Create interactive cards for each document type
+        self.cards = {}
         
-        check_ingreso = tk.Checkbutton(ingreso_frame, text="📥 INGRESO", 
-                               variable=self.var_ingreso,
-                               bg=COLORS["SURFACE"], fg=COLORS["GREEN"], 
-                               font=("Segoe UI Variable Text", 14, "bold"),
-                               selectcolor=COLORS["SURFACE"], activebackground=COLORS["SURFACE"],
-                               padx=20, pady=10, bd=0, cursor="hand2", anchor="w")
-        check_ingreso.pack(fill="x", padx=10, pady=(10, 5))
+        # Ingreso Card
+        self.cards["Ingreso"] = self._create_card(
+            cards_container, 
+            "Ingreso",
+            "📥",
+            COLORS.get("CAT_INGRESO", COLORS["GREEN"]),
+            "Documentos de ingreso de personal"
+        )
+        self.cards["Ingreso"].pack(fill="x", pady=8)
         
-        tk.Label(ingreso_frame, text="Documentos de ingreso",
-                font=("Segoe UI Variable Text", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"],
-                anchor="w").pack(padx=35, pady=(0, 10))
+        # En Curso Card
+        self.cards["En Curso"] = self._create_card(
+            cards_container,
+            "En Curso",
+            "📋",
+            COLORS.get("CAT_ENCURSO", COLORS["BLUE"]),
+            "Documentos en proceso activo"
+        )
+        self.cards["En Curso"].pack(fill="x", pady=8)
         
-        # En Curso Checkbox
-        encurso_frame = tk.Frame(btn_container, bg=COLORS["SURFACE"], highlightthickness=2,
-                                highlightbackground=COLORS["BORDER"])
-        encurso_frame.pack(fill="x", pady=8)
-        
-        check_encurso = tk.Checkbutton(encurso_frame, text="📋 EN CURSO",
-                               variable=self.var_encurso,
-                               bg=COLORS["SURFACE"], fg=COLORS["BLUE"],
-                               font=("Segoe UI Variable Text", 14, "bold"),
-                               selectcolor=COLORS["SURFACE"], activebackground=COLORS["SURFACE"],
-                               padx=20, pady=10, bd=0, cursor="hand2", anchor="w")
-        check_encurso.pack(fill="x", padx=10, pady=(10, 5))
-        
-        tk.Label(encurso_frame, text="Documentos en proceso",
-                font=("Segoe UI Variable Text", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"],
-                anchor="w").pack(padx=35, pady=(0, 10))
-        
-        # Retiro Checkbox
-        retiro_frame = tk.Frame(btn_container, bg=COLORS["SURFACE"], highlightthickness=2,
-                               highlightbackground=COLORS["BORDER"])
-        retiro_frame.pack(fill="x", pady=8)
-        
-        check_retiro = tk.Checkbutton(retiro_frame, text="📤 RETIRO",
-                              variable=self.var_retiro,
-                              bg=COLORS["SURFACE"], fg=COLORS["RED"],
-                              font=("Segoe UI Variable Text", 14, "bold"),
-                              selectcolor=COLORS["SURFACE"], activebackground=COLORS["SURFACE"],
-                              padx=20, pady=10, bd=0, cursor="hand2", anchor="w")
-        check_retiro.pack(fill="x", padx=10, pady=(10, 5))
-        
-        tk.Label(retiro_frame, text="Documentos de retiro/salida",
-                font=("Segoe UI Variable Text", 9), bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"],
-                anchor="w").pack(padx=35, pady=(0, 10))
+        # Retiro Card
+        self.cards["Retiro"] = self._create_card(
+            cards_container,
+            "Retiro",
+            "📤",
+            COLORS.get("CAT_RETIRO", COLORS["RED"]),
+            "Documentos de retiro/salida"
+        )
+        self.cards["Retiro"].pack(fill="x", pady=8)
         
         # Action buttons
         btn_frame = tk.Frame(content, bg=COLORS["BG"])
-        btn_frame.pack(pady=(20, 0), fill="x")
+        btn_frame.pack(pady=(30, 0), fill="x")
         
         tk.Button(btn_frame, text="Cancelar", command=self.destroy,
-                 bg=COLORS["ACCENT"], fg=COLORS["TEXT_SECONDARY"], font=FONTS["MAIN"],
-                 padx=15, pady=8, bd=0, cursor="hand2").pack(side="left")
+                 bg=COLORS["ACCENT"], fg=COLORS["TEXT"], 
+                 font=("Segoe UI Variable Text", 10),
+                 padx=20, pady=10, bd=0, cursor="hand2",
+                 relief="flat").pack(side="left")
         
-        RoundedButton(btn_frame, "CONFIRMAR", command=self.confirm_selection, width=150).pack(side="right")
+        RoundedButton(btn_frame, "CONFIRMAR ✓", command=self.confirm_selection, 
+                     width=180, height=50, gradient=True).pack(side="right")
+    
+    def _create_card(self, parent, doc_type, icon, color, description):
+        """Create an interactive card for document type selection"""
+        # Card frame with hover effect
+        card_frame = tk.Frame(parent, bg=COLORS["SURFACE"], bd=0,
+                             highlightthickness=2, highlightbackground=COLORS["BORDER"])
+        
+        # Inner container for padding
+        inner = tk.Frame(card_frame, bg=COLORS["SURFACE"])
+        inner.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Left side: Icon
+        left_frame = tk.Frame(inner, bg=COLORS["SURFACE"])
+        left_frame.pack(side="left", padx=(0, 15))
+        
+        icon_label = tk.Label(left_frame, text=icon, font=("Segoe UI", 36),
+                             bg=COLORS["SURFACE"], fg=color)
+        icon_label.pack()
+        
+        # Right side: Text content
+        right_frame = tk.Frame(inner, bg=COLORS["SURFACE"])
+        right_frame.pack(side="left", fill="both", expand=True)
+        
+        title_label = tk.Label(right_frame, text=doc_type.upper(),
+                              font=("Segoe UI Variable Display", 14, "bold"),
+                              bg=COLORS["SURFACE"], fg=color, anchor="w")
+        title_label.pack(fill="x")
+        
+        desc_label = tk.Label(right_frame, text=description,
+                             font=("Segoe UI Variable Text", 9),
+                             bg=COLORS["SURFACE"], fg=COLORS["TEXT_SECONDARY"],
+                             anchor="w")
+        desc_label.pack(fill="x", pady=(2, 0))
+        
+        # Selection indicator (checkmark)
+        check_frame = tk.Frame(inner, bg=COLORS["SURFACE"], width=40)
+        check_frame.pack(side="right")
+        check_frame.pack_propagate(False)
+        
+        check_label = tk.Label(check_frame, text="", font=("Segoe UI", 20),
+                              bg=COLORS["SURFACE"], fg=color)
+        check_label.pack(expand=True)
+        
+        # Store references for updates
+        card_frame._inner = inner
+        card_frame._icon_label = icon_label
+        card_frame._title_label = title_label
+        card_frame._desc_label = desc_label
+        card_frame._check_label = check_label
+        card_frame._color = color
+        card_frame._doc_type = doc_type
+        
+        # Bind click events to all components
+        for widget in [card_frame, inner, left_frame, right_frame, icon_label, 
+                      title_label, desc_label, check_frame, check_label]:
+            widget.bind("<Button-1>", lambda e, dt=doc_type: self._toggle_selection(dt))
+            widget.bind("<Enter>", lambda e, cf=card_frame: self._on_card_hover(cf, True))
+            widget.bind("<Leave>", lambda e, cf=card_frame: self._on_card_hover(cf, False))
+            widget.config(cursor="hand2")
+        
+        return card_frame
+    
+    def _toggle_selection(self, doc_type):
+        """Toggle selection state for a document type"""
+        self.selections[doc_type] = not self.selections[doc_type]
+        self._update_card_appearance(doc_type)
+    
+    def _update_card_appearance(self, doc_type):
+        """Update card visual state based on selection"""
+        card = self.cards[doc_type]
+        is_selected = self.selections[doc_type]
+        color = card._color
+        
+        if is_selected:
+            # Selected state - vibrant colors
+            card.config(highlightbackground=color, highlightthickness=3)
+            card._inner.config(bg=COLORS.get("BLUE_LIGHT", COLORS["SURFACE"]))
+            card._icon_label.config(bg=COLORS.get("BLUE_LIGHT", COLORS["SURFACE"]))
+            card._title_label.config(bg=COLORS.get("BLUE_LIGHT", COLORS["SURFACE"]))
+            card._desc_label.config(bg=COLORS.get("BLUE_LIGHT", COLORS["SURFACE"]))
+            card._check_label.config(text="✓", bg=COLORS.get("BLUE_LIGHT", COLORS["SURFACE"]))
+        else:
+            # Unselected state
+            card.config(highlightbackground=COLORS["BORDER"], highlightthickness=2)
+            card._inner.config(bg=COLORS["SURFACE"])
+            card._icon_label.config(bg=COLORS["SURFACE"])
+            card._title_label.config(bg=COLORS["SURFACE"])
+            card._desc_label.config(bg=COLORS["SURFACE"])
+            card._check_label.config(text="", bg=COLORS["SURFACE"])
+    
+    def _on_card_hover(self, card, entering):
+        """Handle hover effects on cards"""
+        if entering and not self.selections[card._doc_type]:
+            card.config(highlightbackground=card._color, highlightthickness=2)
+        elif not entering and not self.selections[card._doc_type]:
+            card.config(highlightbackground=COLORS["BORDER"], highlightthickness=2)
     
     def confirm_selection(self):
         # Collect selected types
-        selected = []
-        if self.var_ingreso.get():
-            selected.append("Ingreso")
-        if self.var_encurso.get():
-            selected.append("En Curso")
-        if self.var_retiro.get():
-            selected.append("Retiro")
+        selected = [doc_type for doc_type, is_selected in self.selections.items() if is_selected]
         
         if not selected:
-            messagebox.showwarning("Selección Requerida", "Por favor seleccione al menos un tipo de documento.")
+            messagebox.showwarning("Selección Requerida", 
+                                  "Por favor seleccione al menos un tipo de documento.")
             return
         
         self.selected_types = selected
         self.destroy()
 
+
 # --- CONFIGURATION & STYLING ---
 THEMES = {
     "light": {
-        "BLUE": "#E67E22",
-        "BLUE_HOVER": "#D35400",
-        "BLUE_LIGHT": "#FDEBD0",
-        "RED": "#E74C3C",
-        "GREEN": "#27AE60", # Nature Green
-        "BG": "#F5F2EB", # Deeper Warm Cream (Less stark)
-        "SURFACE": "#FDFBF7", # Very light warm white (Not pure white)
-        "TEXT": "#2D3436", # Soft Charcoal
-        "TEXT_SECONDARY": "#636E72", # Warm Gray
-        "BORDER": "#E2DED5", # Warm Grayish Beige
-        "ACCENT": "#EAE6DC" # Warm Beige Accent
+        # Primary Colors
+        "BLUE": "#FF6B35",  # Vibrant Orange (Primary Action)
+        "BLUE_HOVER": "#E85D2F",  # Darker Orange on Hover
+        "BLUE_LIGHT": "#FFE8DF",  # Very Light Orange Background
+        "RED": "#E63946",  # Vibrant Red
+        "GREEN": "#06D6A0",  # Vibrant Teal Green
+        "PURPLE": "#7209B7",  # Vibrant Purple
+        "YELLOW": "#FFB703",  # Vibrant Yellow
+        
+        # Backgrounds
+        "BG": "#F8F9FA",  # Light Gray Background
+        "SURFACE": "#FFFFFF",  # Pure White Surface
+        "SURFACE_HOVER": "#F1F3F5",  # Light Hover State
+        
+        # Text
+        "TEXT": "#212529",  # Almost Black
+        "TEXT_SECONDARY": "#6C757D",  # Medium Gray
+        "TEXT_TERTIARY": "#ADB5BD",  # Light Gray
+        
+        # Borders & Accents
+        "BORDER": "#DEE2E6",  # Light Border
+        "BORDER_FOCUS": "#FF6B35",  # Orange Border on Focus
+        "ACCENT": "#E9ECEF",  # Light Accent
+        
+        # Shadows & Effects (solid colors, no alpha)
+        "SHADOW_LIGHT": "#F0F0F0",  # Very Light Gray Shadow
+        "SHADOW_MEDIUM": "#E0E0E0",  # Medium Gray Shadow
+        "SHADOW_DARK": "#D0D0D0",  # Darker Gray Shadow
+        
+        # Category Colors
+        "CAT_INGRESO": "#06D6A0",  # Teal for Ingreso
+        "CAT_ENCURSO": "#118AB2",  # Blue for En Curso
+        "CAT_RETIRO": "#EF476F",  # Pink-Red for Retiro
+        
+        # Status Colors
+        "SUCCESS": "#06D6A0",
+        "WARNING": "#FFB703",
+        "ERROR": "#E63946",
+        "INFO": "#118AB2"
     },
     "dark": {
-        "BLUE": "#D35400", 
-        "BLUE_HOVER": "#A04000",
-        "BLUE_LIGHT": "#2C2C2E", # Dark gray
-        "RED": "#C0392B",
-        "GREEN": "#219150",
-        "BG": "#1E1E1E", # Warm dark gray
-        "SURFACE": "#2D2D2D",
-        "TEXT": "#ECF0F1",
-        "TEXT_SECONDARY": "#BDC3C7",
-        "BORDER": "#424242",
-        "ACCENT": "#333333"
+        # Primary Colors
+        "BLUE": "#FF6B35",  # Vibrant Orange
+        "BLUE_HOVER": "#FF8555",  # Lighter Orange on Hover (inverted for dark)
+        "BLUE_LIGHT": "#2A2A2A",  # Dark Surface
+        "RED": "#FF6B6B",  # Softer Red for Dark Mode
+        "GREEN": "#51CF66",  # Softer Green
+        "PURPLE": "#9775FA",  # Softer Purple
+        "YELLOW": "#FFD43B",  # Softer Yellow
+        
+        # Backgrounds
+        "BG": "#121212",  # True Dark Background
+        "SURFACE": "#1E1E1E",  # Dark Surface
+        "SURFACE_HOVER": "#2A2A2A",  # Lighter on Hover
+        
+        # Text
+        "TEXT": "#E9ECEF",  # Light Gray Text
+        "TEXT_SECONDARY": "#ADB5BD",  # Medium Gray
+        "TEXT_TERTIARY": "#6C757D",  # Darker Gray
+        
+        # Borders & Accents
+        "BORDER": "#343A40",  # Dark Border
+        "BORDER_FOCUS": "#FF6B35",  # Orange Border on Focus
+        "ACCENT": "#2C3034",  # Dark Accent
+        
+        # Shadows & Effects (solid colors, no alpha)
+        "SHADOW_LIGHT": "#2A2A2A",  # Light Shadow
+        "SHADOW_MEDIUM": "#252525",  # Medium Shadow
+        "SHADOW_DARK": "#202020",  # Dark Shadow
+        
+        # Category Colors (Slightly muted for dark mode)
+        "CAT_INGRESO": "#51CF66",  # Softer Teal
+        "CAT_ENCURSO": "#4DABF7",  # Softer Blue
+        "CAT_RETIRO": "#FF6B6B",  # Softer Pink-Red
+        
+        # Status Colors
+        "SUCCESS": "#51CF66",
+        "WARNING": "#FFD43B",
+        "ERROR": "#FF6B6B",
+        "INFO": "#4DABF7"
     }
 }
 
@@ -563,31 +703,127 @@ class PDFEngine:
 
 # --- CUSTOM WIDGETS ---
 class RoundedButton(tk.Canvas):
-    def __init__(self, parent, text, command=None, width=200, height=45, color=None, fg_color="white", **kwargs):
+    def __init__(self, parent, text, command=None, width=200, height=45, color=None, fg_color="white", icon=None, gradient=False, **kwargs):
         self.color = color or COLORS["BLUE"]
         self.fg_color = fg_color or "white"
+        self.icon = icon
+        self.gradient = gradient
         
         super().__init__(parent, width=width, height=height, bg=parent["bg"], highlightthickness=0, cursor="hand2")
         self.command = command
         self.text = text
         self.state = "normal"
+        self.hover_state = False
         self.draw()
         
         self.bind("<Button-1>", lambda e: self._on_click())
-        self.bind("<Enter>", lambda e: self.draw(hover=True))
-        self.bind("<Leave>", lambda e: self.draw(hover=False))
+        self.bind("<Enter>", lambda e: self._on_enter())
+        self.bind("<Leave>", lambda e: self._on_leave())
+
+    def _on_enter(self):
+        self.hover_state = True
+        self.draw(hover=True)
+    
+    def _on_leave(self):
+        self.hover_state = False
+        self.draw(hover=False)
 
     def draw(self, hover=False):
         self.delete("all")
         w, h = self.winfo_reqwidth(), self.winfo_reqheight()
-        c = self.color if not hover else COLORS["BLUE_HOVER"]
-        if self.state == "disabled": c = COLORS["BORDER"]
         
-        self._draw_rounded_rect(2, 2, w-2, h-2, 12, fill=c)
-        self.create_text(w/2, h/2, text=self.text, fill=self.fg_color if self.state != "disabled" else COLORS["TEXT_SECONDARY"], font=FONTS["BOLD"])
+        if self.state == "disabled":
+            c = COLORS["BORDER"]
+            shadow_c = COLORS.get("SHADOW_LIGHT", "#F0F0F0")
+        else:
+            c = COLORS.get("BLUE_HOVER", self.color) if hover else self.color
+            # Use same shadow color, just slightly different intensity
+            shadow_c = COLORS.get("SHADOW_MEDIUM", "#E0E0E0") if hover else COLORS.get("SHADOW_LIGHT", "#F0F0F0")
+        
+        # Draw shadow with FIXED offset to prevent jitter
+        shadow_offset = 3  # Fixed offset
+        if self.state != "disabled":
+            # Single shadow layer for better performance
+            self._draw_rounded_rect(
+                3, 3 + shadow_offset, 
+                w - 3, h - 3 + shadow_offset, 
+                12, fill=shadow_c, outline=""
+            )
+        
+        # Draw main button with gradient effect
+        if self.gradient and self.state != "disabled":
+            # Simulate gradient with multiple rectangles
+            steps = 8  # Reduced from 10 for better performance
+            for i in range(steps):
+                y_start = 3 + (h - 6) * i / steps
+                y_end = 3 + (h - 6) * (i + 1) / steps
+                
+                # Calculate color interpolation
+                ratio = i / steps
+                if hover:
+                    # Lighter gradient on hover
+                    shade = self._lighten_color(c, 0.1 * (1 - ratio))
+                else:
+                    shade = self._darken_color(c, 0.05 * ratio)
+                
+                self.create_rectangle(
+                    3, y_start, w - 3, y_end,
+                    fill=shade, outline=""
+                )
+            # Add rounded corners on top
+            self._draw_rounded_rect(3, 3, w-3, h-3, 12, fill="", outline=c, width=0)
+        else:
+            # Solid color button
+            self._draw_rounded_rect(3, 3, w-3, h-3, 12, fill=c, outline="")
+        
+        # Add subtle inner highlight (top edge) - only when not hovering
+        if self.state != "disabled" and not hover:
+            highlight = self._lighten_color(c, 0.15)
+            self.create_line(15, 5, w-15, 5, fill=highlight, width=1, smooth=True)
+        
+        # Draw text with icon if provided
+        text_x = w / 2
+        if self.icon:
+            icon_x = w / 2 - 30
+            self.create_text(icon_x, h / 2, text=self.icon, 
+                           fill=self.fg_color if self.state != "disabled" else COLORS["TEXT_SECONDARY"], 
+                           font=("Segoe UI", 14))
+            text_x = w / 2 + 10
+        
+        self.create_text(text_x, h / 2, text=self.text, 
+                        fill=self.fg_color if self.state != "disabled" else COLORS["TEXT_SECONDARY"], 
+                        font=FONTS["BOLD"])
+
+    def _lighten_color(self, hex_color, factor):
+        """Lighten a hex color by a factor (0-1)"""
+        try:
+            hex_color = hex_color.lstrip('#')
+            r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            r = min(255, int(r + (255 - r) * factor))
+            g = min(255, int(g + (255 - g) * factor))
+            b = min(255, int(b + (255 - b) * factor))
+            return f'#{r:02x}{g:02x}{b:02x}'
+        except:
+            return hex_color
+    
+    def _darken_color(self, hex_color, factor):
+        """Darken a hex color by a factor (0-1)"""
+        try:
+            hex_color = hex_color.lstrip('#')
+            r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            r = max(0, int(r * (1 - factor)))
+            g = max(0, int(g * (1 - factor)))
+            b = max(0, int(b * (1 - factor)))
+            return f'#{r:02x}{g:02x}{b:02x}'
+        except:
+            return hex_color
 
     def _on_click(self):
-        if self.state == "normal" and self.command: self.command()
+        if self.state == "normal" and self.command: 
+            # Visual feedback on click
+            self.draw(hover=False)
+            self.after(100, lambda: self.draw(hover=self.hover_state))
+            self.command()
 
     def set_text(self, new_text):
         self.text = new_text
@@ -610,6 +846,7 @@ class RoundedButton(tk.Canvas):
         ]
         return self.create_polygon(points, **kwargs, smooth=True)
 
+
 class Tooltip:
     """A simple tooltip class for Tkinter widgets."""
     def __init__(self, widget, text):
@@ -627,9 +864,13 @@ class Tooltip:
         tw.wm_overrideredirect(True)
         tw.wm_geometry(f"+{x}+{y}")
         
+        # Use current theme colors
+        bg_color = COLORS.get("SURFACE", "#2c3e50")
+        fg_color = COLORS.get("TEXT", "#ecf0f1")
+        
         label = tk.Label(tw, text=self.text, justify='left',
-                         background="#2c3e50", foreground="#ecf0f1",
-                         relief='flat', borderwidth=1,
+                         background=bg_color, foreground=fg_color,
+                         relief='solid', borderwidth=1,
                          font=("Segoe UI Variable Text", 9),
                          padx=8, pady=4)
         label.pack(ipadx=1)
@@ -646,6 +887,7 @@ class HighResCanvas(tk.Frame):
         self.page_num = page_num
         self.engine = engine
         self.zoom_level = 2.0
+        self._resize_job = None  # For debouncing resize events
         
         self.canvas = tk.Canvas(self, bg=COLORS["BG"], highlightthickness=0)
         self.v_scroll = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
@@ -657,12 +899,64 @@ class HighResCanvas(tk.Frame):
         self.canvas.pack(fill="both", expand=True)
 
         self.tk_img = None
-        self.render_image()
+        
+        # Wait for widget to be fully sized before rendering
+        self.after(100, self.render_image)
 
         self.canvas.bind("<MouseWheel>", self._on_mousewheel)
         self.canvas.bind("<Control-MouseWheel>", self._on_zoom)
         # Bind to parent too for better coverage
         self.bind("<MouseWheel>", self._on_mousewheel)
+        
+        # Bind to resize event for auto-adjustment
+        self.canvas.bind("<Configure>", self._on_resize)
+
+    def _on_resize(self, event):
+        """Handle canvas resize with debouncing to avoid excessive re-renders"""
+        # Cancel pending resize job if exists
+        if self._resize_job:
+            self.after_cancel(self._resize_job)
+        
+        # Schedule new resize job after 200ms of no resize events
+        self._resize_job = self.after(200, self._handle_resize)
+    
+    def _handle_resize(self):
+        """Actually handle the resize after debouncing"""
+        self._resize_job = None
+        if self.tk_img:  # Only re-center if image exists
+            self._recenter_image()
+
+    def _recenter_image(self):
+        """Recenter the existing image without re-rendering"""
+        if not self.tk_img:
+            return
+            
+        # Get current canvas size
+        self.canvas.update_idletasks()
+        cw = self.canvas.winfo_width()
+        ch = self.canvas.winfo_height()
+        
+        # Get image dimensions
+        img_w = self.tk_img.width()
+        img_h = self.tk_img.height()
+        
+        # Calculate centered position
+        x_pos = max(0, (cw - img_w) // 2)
+        y_pos = max(0, (ch - img_h) // 2)
+        
+        # Redraw image at new position
+        self.canvas.delete("all")
+        self.canvas.create_image(x_pos, y_pos, image=self.tk_img, anchor="nw")
+        
+        # Update scroll region
+        self.canvas.config(scrollregion=(0, 0, max(cw, img_w), max(ch, img_h)))
+        
+        # Center the scroll if image is larger than canvas
+        if img_w > cw or img_h > ch:
+            x_scroll = (img_w - cw) / (2 * img_w) if img_w > cw else 0
+            y_scroll = (img_h - ch) / (2 * img_h) if img_h > ch else 0
+            self.canvas.xview_moveto(x_scroll)
+            self.canvas.yview_moveto(y_scroll)
 
     def render_image(self):
         rot = 0
@@ -674,14 +968,31 @@ class HighResCanvas(tk.Frame):
         img_pil = Image.open(io.BytesIO(pix.tobytes()))
         self.tk_img = ImageTk.PhotoImage(img_pil) 
         
-        cw = self.winfo_width()
-        ch = self.winfo_height()
+        # Get actual canvas size
+        self.canvas.update_idletasks()
+        cw = self.canvas.winfo_width()
+        ch = self.canvas.winfo_height()
+        
+        # Calculate centered position
+        img_w = self.tk_img.width()
+        img_h = self.tk_img.height()
+        
+        x_pos = max(0, (cw - img_w) // 2)
+        y_pos = max(0, (ch - img_h) // 2)
         
         self.canvas.delete("all")
-        self.canvas.create_image(max(0, (cw - self.tk_img.width()) // 2), 
-                                 max(0, (ch - self.tk_img.height()) // 2), 
-                                 image=self.tk_img, anchor="nw")
-        self.canvas.config(scrollregion=self.canvas.bbox("all"))
+        self.canvas.create_image(x_pos, y_pos, image=self.tk_img, anchor="nw")
+        
+        # Set scroll region to include the entire image
+        self.canvas.config(scrollregion=(0, 0, max(cw, img_w), max(ch, img_h)))
+        
+        # Center the view if image is larger than canvas
+        if img_w > cw or img_h > ch:
+            # Calculate scroll position to center the image
+            x_scroll = (img_w - cw) / (2 * img_w) if img_w > cw else 0
+            y_scroll = (img_h - ch) / (2 * img_h) if img_h > ch else 0
+            self.canvas.xview_moveto(x_scroll)
+            self.canvas.yview_moveto(y_scroll)
 
     def _on_zoom(self, event):
         if event.delta > 0: self.zoom_level *= 1.2
@@ -694,19 +1005,18 @@ class HighResCanvas(tk.Frame):
 
     def refresh_theme(self):
         self.config(bg=COLORS["BG"])
+        self.canvas.config(bg=COLORS["BG"])
         self.render_image()
 
     def _on_zoom_manual(self, factor):
         """Manual zoom adjustment."""
-        self.zoom *= factor
-        self.zoom = max(0.1, min(5.0, self.zoom))
-        self.render_image()
-        self.canvas.config(bg=COLORS["BG"])
+        self.zoom_level *= factor
+        self.zoom_level = max(0.1, min(5.0, self.zoom_level))
         self.render_image()
 
 class PageTile(tk.Frame):
     def __init__(self, parent, page_num, engine, on_click, on_zoom, on_rotate):
-        super().__init__(parent, bg=COLORS["SURFACE"], bd=0, highlightthickness=2, highlightbackground=COLORS["BORDER"])
+        super().__init__(parent, bg=COLORS["BG"], bd=0, highlightthickness=0)
         self.page_num = page_num
         self.engine = engine
         self.on_click = on_click
@@ -715,27 +1025,56 @@ class PageTile(tk.Frame):
         self.selected = False
         self.is_rendered = False
         self.last_render_scale = 0
+        self.hover = False
         
-        self.img_container = tk.Frame(self, bg=COLORS["SURFACE"], width=170, height=220)
+        # Main card container with rounded corners effect
+        self.card = tk.Frame(self, bg=COLORS["SURFACE"], bd=0, 
+                            highlightthickness=3, highlightbackground=COLORS["BORDER"])
+        self.card.pack(padx=4, pady=4, fill="both", expand=True)
+        
+        # Image container with padding
+        self.img_container = tk.Frame(self.card, bg=COLORS["SURFACE"], width=170, height=220)
         self.img_container.pack_propagate(False)
-        self.img_container.pack(padx=8, pady=8)
+        self.img_container.pack(padx=10, pady=10)
         
         self.tk_img = None
-        self.lbl_img = tk.Label(self.img_container, text="⏳", font=("Segoe UI Variable Text", 24), bg=COLORS["SURFACE"], fg=COLORS["BORDER"], cursor="hand2")
+        self.lbl_img = tk.Label(self.img_container, text="⏳", 
+                               font=("Segoe UI Variable Text", 24), 
+                               bg=COLORS["SURFACE"], fg=COLORS["TEXT_TERTIARY"], 
+                               cursor="hand2")
         self.lbl_img.pack(expand=True, fill="both")
         
-        self.bottom_bar = tk.Frame(self, bg=COLORS["ACCENT"], height=32)
+        # Bottom bar with modern design
+        self.bottom_bar = tk.Frame(self.card, bg=COLORS["SURFACE"], height=40)
         self.bottom_bar.pack(fill="x", side="bottom")
         self.bottom_bar.pack_propagate(False)
-
-        self.lbl_status = tk.Label(self.bottom_bar, text=f"{page_num+1}", bg=COLORS["ACCENT"], fg=COLORS["TEXT_SECONDARY"], font=("Segoe UI Variable Text", 9))
-        self.lbl_status.pack(side="left", padx=10)
         
-        self.btn_rot = tk.Label(self.bottom_bar, text="↻", bg=COLORS["ACCENT"], fg=COLORS["BLUE"], font=("Segoe UI Variable Text", 12), cursor="hand2")
-        self.btn_rot.pack(side="right", padx=10)
+        # Page number badge (modern circular badge)
+        self.badge_frame = tk.Frame(self.bottom_bar, bg=COLORS["SURFACE"])
+        self.badge_frame.pack(side="left", padx=10, pady=5)
+        
+        self.badge_canvas = tk.Canvas(self.badge_frame, width=32, height=32, 
+                                     bg=COLORS["SURFACE"], highlightthickness=0)
+        self.badge_canvas.pack()
+        
+        # Draw circular badge
+        self._draw_badge(page_num + 1)
+        
+        # Rotate button with icon
+        self.btn_rot = tk.Label(self.bottom_bar, text="↻", 
+                               bg=COLORS["SURFACE"], fg=COLORS["BLUE"], 
+                               font=("Segoe UI Variable Text", 16, "bold"), 
+                               cursor="hand2", padx=8)
+        self.btn_rot.pack(side="right", padx=10, pady=5)
         self.btn_rot.bind("<Button-1>", self._handle_rotate)
+        
+        # Hover effect for rotate button
+        self.btn_rot.bind("<Enter>", lambda e: self.btn_rot.config(fg=COLORS["BLUE_HOVER"]))
+        self.btn_rot.bind("<Leave>", lambda e: self.btn_rot.config(
+            fg="white" if self.selected else COLORS["BLUE"]))
 
-        for w in [self, self.lbl_img, self.lbl_status, self.img_container, self.bottom_bar]:
+        # Bind events to all components
+        for w in [self, self.card, self.lbl_img, self.img_container, self.bottom_bar, self.badge_frame]:
             w.bind("<Button-1>", self._handle_click)
             w.bind("<Button-3>", self._handle_right_press)
             w.bind("<ButtonRelease-3>", self._handle_right_release)
@@ -746,6 +1085,27 @@ class PageTile(tk.Frame):
             # Set initial "invisible" state for animation
             self.lbl_img.config(fg=COLORS["BG"])
             self.bottom_bar.pack_forget()
+    
+    def _draw_badge(self, page_num):
+        """Draw a modern circular badge with page number"""
+        self.badge_canvas.delete("all")
+        
+        # Badge circle
+        badge_color = COLORS["BLUE"] if self.selected else COLORS["ACCENT"]
+        text_color = "white" if self.selected else COLORS["TEXT_SECONDARY"]
+        
+        # Draw circle
+        self.badge_canvas.create_oval(2, 2, 30, 30, fill=badge_color, outline="", width=0)
+        
+        # Add subtle border
+        if not self.selected:
+            self.badge_canvas.create_oval(2, 2, 30, 30, fill="", 
+                                         outline=COLORS["BORDER"], width=2)
+        
+        # Page number text
+        self.badge_canvas.create_text(16, 16, text=str(page_num), 
+                                     fill=text_color, 
+                                     font=("Segoe UI Variable Display", 10, "bold"))
 
     def _handle_right_press(self, e):
         self._right_click_time = time.time()
@@ -800,68 +1160,78 @@ class PageTile(tk.Frame):
         self.lbl_img.config(image=self.tk_img)
 
     def _on_enter(self, e):
+        self.hover = True
         if not self.selected:
-            self.config(highlightbackground=COLORS["BLUE"])
+            # Keep same thickness, just change color
+            self.card.config(highlightbackground=COLORS["BLUE"])
+            # Add subtle background change for lift effect
+            self.config(bg=COLORS.get("SURFACE_HOVER", COLORS["BG"]))
 
     def _on_leave(self, e):
+        self.hover = False
         if not self.selected:
-            self.config(highlightbackground=COLORS["BORDER"])
+            self.card.config(highlightbackground=COLORS["BORDER"])
+            self.config(bg=COLORS["BG"])
 
     def refresh_theme(self):
-        # Preserve selection state and assigned color
+        # Update all colors based on current theme
         if self.selected:
-            # Try to find what category color this tile has by checking its current background
-            # If it has a custom color from category assignment, preserve it
-            current_bg = str(self.cget("bg"))
-            # Check if it's a category color (BLUE or another color) vs default
-            if current_bg != COLORS["SURFACE"]:
-                # Preserve the assigned category color
-                fill_color = current_bg
-                self.config(bg=fill_color, highlightbackground=fill_color)
-                self.img_container.config(bg=fill_color)
-                self.lbl_img.config(bg=fill_color)
-                self.bottom_bar.config(bg=fill_color)
-                self.lbl_status.config(bg=fill_color, fg="white")
-                self.btn_rot.config(bg=fill_color, fg="white")
-            else:
-                # Use BLUE for generic selection
-                self.config(bg=COLORS["BLUE"], highlightbackground=COLORS["BLUE"])
-                self.img_container.config(bg=COLORS["BLUE"])
-                self.lbl_img.config(bg=COLORS["BLUE"])
-                self.bottom_bar.config(bg=COLORS["BLUE"])
-                self.lbl_status.config(bg=COLORS["BLUE"], fg="white")
-                self.btn_rot.config(bg=COLORS["BLUE"], fg="white")
+            # Selected state with modern colors
+            self.config(bg=COLORS["BG"])
+            self.card.config(bg=COLORS["BLUE"], highlightbackground=COLORS["BLUE"], highlightthickness=3)
+            self.img_container.config(bg=COLORS["BLUE"])
+            self.lbl_img.config(bg=COLORS["BLUE"])
+            self.bottom_bar.config(bg=COLORS["BLUE"])
+            self.badge_frame.config(bg=COLORS["BLUE"])
+            self.badge_canvas.config(bg=COLORS["BLUE"])
+            self.btn_rot.config(bg=COLORS["BLUE"], fg="white")
+            self._draw_badge(self.page_num + 1)
         else:
             # Not selected - use default theme colors
-            self.config(bg=COLORS["SURFACE"], highlightbackground=COLORS["BORDER"])
+            self.config(bg=COLORS["BG"])
+            self.card.config(bg=COLORS["SURFACE"], highlightbackground=COLORS["BORDER"], highlightthickness=3)
             self.img_container.config(bg=COLORS["SURFACE"])
-            self.lbl_img.config(bg=COLORS["SURFACE"])
-            self.bottom_bar.config(bg=COLORS["ACCENT"])
-            self.lbl_status.config(bg=COLORS["ACCENT"], fg=COLORS["TEXT_SECONDARY"])
-            self.btn_rot.config(bg=COLORS["ACCENT"], fg=COLORS["BLUE"])
+            self.lbl_img.config(bg=COLORS["SURFACE"], fg=COLORS["TEXT_TERTIARY"])
+            self.bottom_bar.config(bg=COLORS["SURFACE"])
+            self.badge_frame.config(bg=COLORS["SURFACE"])
+            self.badge_canvas.config(bg=COLORS["SURFACE"])
+            self.btn_rot.config(bg=COLORS["SURFACE"], fg=COLORS["BLUE"])
+            self._draw_badge(self.page_num + 1)
 
     def set_focus(self, focused):
         """Sets a secondary highlight for keyboard focus."""
         if focused:
-            self.config(highlightbackground=COLORS["BLUE"], highlightthickness=3)
+            # Use a different visual indicator for focus (e.g., double border effect)
+            self.card.config(highlightbackground=COLORS["BLUE"], highlightthickness=4)
         else:
-            self.config(highlightbackground=COLORS["BLUE"] if self.selected else COLORS["BORDER"], highlightthickness=2)
+            # Return to normal thickness
+            self.card.config(highlightbackground=COLORS["BLUE"] if self.selected else COLORS["BORDER"], 
+                           highlightthickness=3)
 
     def set_state(self, selected, label_text=None, color=None):
         self.selected = selected
-        fill = color if selected else COLORS["SURFACE"]
-        bg_bottom = color if selected else COLORS["ACCENT"]
-        fg = "white" if selected else COLORS["TEXT_SECONDARY"]
-        txt = label_text or f"Página {self.page_num+1}"
-        weight = "bold" if selected else "normal"
-        size = 11 if selected else 9
+        fill_color = color if (selected and color) else COLORS["BLUE"] if selected else COLORS["SURFACE"]
         
-        self.config(bg=fill, highlightbackground=color if selected else COLORS["BORDER"])
-        self.img_container.config(bg=fill)
-        self.lbl_img.config(bg=fill)
-        self.bottom_bar.config(bg=bg_bottom)
-        self.lbl_status.config(text=txt, bg=bg_bottom, fg=fg, font=("Segoe UI Variable Text", size, weight))
-        self.btn_rot.config(bg=bg_bottom, fg="white" if selected else COLORS["BLUE"])
+        # Update outer frame
+        self.config(bg=COLORS["BG"])
+        
+        # Update card - FIXED thickness to prevent clipping
+        self.card.config(bg=fill_color, 
+                        highlightbackground=fill_color if selected else COLORS["BORDER"],
+                        highlightthickness=3)  # Fixed at 3 always
+        
+        # Update image container
+        self.img_container.config(bg=fill_color)
+        self.lbl_img.config(bg=fill_color)
+        
+        # Update bottom bar
+        self.bottom_bar.config(bg=fill_color)
+        self.badge_frame.config(bg=fill_color)
+        self.badge_canvas.config(bg=fill_color)
+        self.btn_rot.config(bg=fill_color, fg="white" if selected else COLORS["BLUE"])
+        
+        # Redraw badge with new colors
+        self._draw_badge(self.page_num + 1)
 
     def show_context_menu(self, event):
         """Show the right-click context menu."""
@@ -1492,20 +1862,40 @@ class EditorWindow(tk.Toplevel):
         style.configure("Vertical.TScrollbar", troughcolor=COLORS["BG"], background=COLORS["BORDER"], borderwidth=0, arrowcolor=COLORS["TEXT"])
         style.configure("Horizontal.TScrollbar", troughcolor=COLORS["BG"], background=COLORS["BORDER"], borderwidth=0, arrowcolor=COLORS["TEXT"])
 
+        # Main window
         self.configure(bg=COLORS["BG"])
+        
+        # Header section
         self.header.config(bg=COLORS["SURFACE"])
+        self.prog_container.config(bg=COLORS["SURFACE"])
         self.lbl_step.config(bg=COLORS["SURFACE"], fg=COLORS["TEXT"])
+        
+        # Progress bar
+        self.prog_bar_canvas.config(bg=COLORS["BORDER"])
+        self.prog_bar_canvas.itemconfig(self.prog_fill, fill=COLORS["BLUE"])
+        
+        # Header buttons
         self.btn_settings.config(bg=COLORS["SURFACE"], fg=COLORS["TEXT"])
+        if hasattr(self, "btn_help"):
+            self.btn_help.config(bg=COLORS["SURFACE"], fg=COLORS["TEXT"])
+        
+        # Main container
         self.main_container.config(bg=COLORS["BG"])
+        
+        # Sidebar
         self.sidebar.config(bg=COLORS["SURFACE"])
         self.sb_canvas.config(bg=COLORS["SURFACE"])
         self.sb_frame.config(bg=COLORS["SURFACE"])
+        
+        # Grid area
         self.grid_container.config(bg=COLORS["BG"])
         self.canvas.config(bg=COLORS["BG"])
         self.inner.config(bg=COLORS["BG"])
+        
+        # Footer
         self.footer.config(bg=COLORS["SURFACE"])
         
-        # Navigation Buttons Fix (names matched with setup_ui)
+        # Navigation Buttons
         self.btn_prev_seg.refresh_theme(COLORS["ACCENT"])
         self.btn_prev.refresh_theme(COLORS["ACCENT"])
         self.btn_finish.refresh_theme(COLORS["RED"])
@@ -1514,9 +1904,14 @@ class EditorWindow(tk.Toplevel):
         
         # Slider Refresh
         if hasattr(self, "zoom_slider"):
-            self.zoom_slider.config(bg=COLORS["SURFACE"], activebackground=COLORS["ACCENT"], troughcolor=COLORS["BORDER"], fg=COLORS["TEXT"])
+            self.zoom_slider.config(bg=COLORS["SURFACE"], activebackground=COLORS["ACCENT"], 
+                                   troughcolor=COLORS["BORDER"], fg=COLORS["TEXT"])
         
-        for t in self.tiles: t.refresh_theme()
+        # Refresh all tiles
+        for t in self.tiles: 
+            t.refresh_theme()
+        
+        # Refresh sidebar content
         self.update_sidebar()
 
     def load_pages(self):

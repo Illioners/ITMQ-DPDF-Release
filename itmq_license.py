@@ -228,10 +228,10 @@ def ensure_trial_initiated():
         
     # Generate a trial key for THIS machine
     hwid = get_machine_id() 
-    # Default trial is 7 days starting from January 18, 2026
+    # Default trial is 7 days starting from January 28, 2026
     trial_key = generate_key("7D")
-    # Set custom activation date to January 18, 2026
-    trial_start_date = datetime(2026, 1, 18, 0, 0, 0)
+    # Set custom activation date to January 28, 2026
+    trial_start_date = datetime(2026, 1, 28, 0, 0, 0)
     return save_license(trial_key, "7D", custom_activation_date=trial_start_date)
 
 if __name__ == "__main__":
