@@ -33,7 +33,31 @@ wheels/
 # Local settings
 user_settings.json
 nuitka-crash-report.xml
+data/layout_rules.json
+data/
+*.json
 
 # Code signing (removed feature)
 *.pfx
 create_cert.ps1
+
+# Source Code (Private)
+*.py
+app_shared.py
+app_pyqt.py
+ai_core.py
+layout_trainer.py
+proglite.py
+compile_system.py
+build.py
+itmq_updater.py
+itmq_license.py
+*.pyw
+
+# IDE / AI
+.vscode/
+.idea/
+.gemini/
+brain/
+automations/
+.agent/

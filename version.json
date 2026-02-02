@@ -1,9 +1,0 @@
-{
-    "version": "1.4.27",
-    "release_date": "2026-01-28",
-    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.27/ClasificadorPDF.zip",
-    "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.4.27/ITMQ-Updater.zip",
-    "sha256": "97f2b41c0a2321bee4672a7ea65ca44adf5d39219de04efdfb5e6cad391b0ab8",
-    "changelog": "Versión 1.4.27: Corrección de error de acceso denegado en ITMQ-Manager.",
-    "min_version": "1.4.0"
-}
