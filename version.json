@@ -1,0 +1,9 @@
+{
+    "version": "1.5.0",
+    "release_date": "2026-02-07",
+    "download_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.5.0/ClasificadorPDF.zip",
+    "updater_url": "https://github.com/Illioners/ITMQ-DPDF-Release/releases/download/v1.5.0/ITMQ-Updater.zip",
+    "sha256": "2a54f27eb6cdbad62d34c7389a09aca5c3b234a758e90fb4bc83d3ef67170a58",
+    "changelog": "Versión 1.5.0: Finalización de Proglite con sistema de recuperación de sesión y robustez mejorada.",
+    "min_version": "1.5.0"
+}
